@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           id: string
           order_index: number
+          photo_url: string | null
           student_id: string | null
           student_name: string
           title: string
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_index?: number
+          photo_url?: string | null
           student_id?: string | null
           student_name?: string
           title: string
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_index?: number
+          photo_url?: string | null
           student_id?: string | null
           student_name?: string
           title?: string

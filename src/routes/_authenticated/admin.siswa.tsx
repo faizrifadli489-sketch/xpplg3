@@ -17,8 +17,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, User } from "lucide-react";
 import { toast } from "sonner";
+import { ImageUpload } from "@/components/image-upload";
 
 export const Route = createFileRoute("/_authenticated/admin/siswa")({
   component: AdminSiswa,
@@ -53,6 +54,7 @@ function AdminSiswa() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StudentRow | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [uploading, setUploading] = useState(false);
 
   const { data: students, isLoading } = useQuery({
     queryKey: ["students"],
@@ -68,7 +70,7 @@ function AdminSiswa() {
         ...(form.nickname ? { nickname: form.nickname } : {}),
         ...(form.nis ? { nis: form.nis } : {}),
         ...(form.gender ? { gender: form.gender as "L" | "P" } : {}),
-        ...(form.photo_url ? { photo_url: form.photo_url } : {}),
+        photo_url: form.photo_url || null,
       };
       if (editing) {
         return update({ data: { id: editing.id, ...payload } });
@@ -168,17 +170,15 @@ function AdminSiswa() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="photo_url">URL foto (opsional)</Label>
-                <Input
-                  id="photo_url"
-                  type="url"
-                  value={form.photo_url}
-                  onChange={(e) => setForm({ ...form, photo_url: e.target.value })}
-                />
-              </div>
+              <ImageUpload
+                value={form.photo_url}
+                onChange={(url) => setForm({ ...form, photo_url: url })}
+                onUploadingChange={setUploading}
+                folder="students"
+                label="Foto siswa (opsional)"
+              />
               <DialogFooter>
-                <Button type="submit" disabled={saveMutation.isPending}>
+                <Button type="submit" disabled={saveMutation.isPending || uploading}>
                   {saveMutation.isPending ? "Menyimpan..." : "Simpan"}
                 </Button>
               </DialogFooter>
@@ -198,13 +198,22 @@ function AdminSiswa() {
           {students.map((student) => (
             <Card key={student.id}>
               <CardContent className="flex items-center justify-between gap-4 py-4">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{student.full_name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {student.nickname ? student.nickname + " · " : ""}
-                    {student.gender === "L" ? "Laki-laki" : student.gender === "P" ? "Perempuan" : "-"}
-                    {student.nis ? " · NIS " + student.nis : ""}
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+                    {student.photo_url ? (
+                      <img src={student.photo_url} alt={student.full_name} className="h-full w-full object-cover" />
+                    ) : (
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{student.full_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {student.nickname ? student.nickname + " · " : ""}
+                      {student.gender === "L" ? "Laki-laki" : student.gender === "P" ? "Perempuan" : "-"}
+                      {student.nis ? " · NIS " + student.nis : ""}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(student)}>

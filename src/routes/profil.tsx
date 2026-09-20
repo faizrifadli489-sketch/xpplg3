@@ -4,9 +4,9 @@ export const Route = createFileRoute("/profil")({
   head: () => ({
     meta: [
       { title: "Profil Kelas — X PPLG 3" },
-      { name: "description", content: "Profil, visi, misi, dan motto kelas X PPLG 3." },
+      { name: "description", content: "Profil, visi, misi, dan motto kelas X PPLG 3 SMKN 1 Leuwimunding." },
       { property: "og:title", content: "Profil Kelas — X PPLG 3" },
-      { property: "og:description", content: "Profil, visi, misi, dan motto kelas X PPLG 3." },
+      { property: "og:description", content: "Profil, visi, misi, dan motto kelas X PPLG 3 SMKN 1 Leuwimunding." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -20,7 +20,7 @@ function ProfilPage() {
       <div className="mb-12 max-w-2xl">
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Profil Kelas</h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Mengenal lebih dekat X PPLG 3, kelas PPLG yang penuh semangat berkarya.
+          Mengenal lebih dekat X PPLG 3 SMKN 1 Leuwimunding, kelas PPLG yang penuh semangat berkarya.
         </p>
       </div>
 

@@ -19,6 +19,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SiswaRouteImport } from './routes/siswa'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated/admin.blog'
 import { Route as AuthenticatedAdminOrganisasiRouteImport } from './routes/_authenticated/admin.organisasi'
@@ -73,6 +74,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => BlogRoute,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRoute,
+} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/siswa': typeof SiswaRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
   '/admin/siswa': typeof AuthenticatedAdminSiswaRoute
@@ -113,7 +120,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRouteWithChildren
+  '/blog': typeof BlogIndexRoute
   '/organisasi': typeof OrganisasiRoute
   '/profil': typeof ProfilRoute
   '/setup': typeof SetupRoute
@@ -136,6 +143,7 @@ export interface FileRoutesById {
   '/siswa': typeof SiswaRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/_authenticated/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
   '/_authenticated/admin/siswa': typeof AuthenticatedAdminSiswaRoute
@@ -153,6 +161,7 @@ export interface FileRouteTypes {
     | '/siswa'
     | '/admin'
     | '/blog/$slug'
+    | '/blog/'
     | '/admin/blog'
     | '/admin/organisasi'
     | '/admin/siswa'
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/siswa'
     | '/_authenticated/admin'
     | '/blog/$slug'
+    | '/blog/'
     | '/_authenticated/admin/blog'
     | '/_authenticated/admin/organisasi'
     | '/_authenticated/admin/siswa'
@@ -272,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/'
@@ -333,10 +350,12 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface BlogRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
 }
 
 const BlogRouteChildren: BlogRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
 }
 
 const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)

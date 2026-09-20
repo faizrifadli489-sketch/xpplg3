@@ -16,8 +16,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, User } from "lucide-react";
 import { toast } from "sonner";
+import { ImageUpload } from "@/components/image-upload";
 
 export const Route = createFileRoute("/_authenticated/admin/organisasi")({
   component: AdminOrganisasi,
@@ -28,11 +29,12 @@ type OrgRow = {
   title: string;
   order_index: number;
   student_name: string;
+  photo_url: string | null;
 };
 
-type FormState = { title: string; student_name: string; order_index: string };
+type FormState = { title: string; student_name: string; order_index: string; photo_url: string };
 
-const emptyForm: FormState = { title: "", student_name: "", order_index: "0" };
+const emptyForm: FormState = { title: "", student_name: "", order_index: "0", photo_url: "" };
 
 function AdminOrganisasi() {
   const queryClient = useQueryClient();
@@ -44,6 +46,7 @@ function AdminOrganisasi() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<OrgRow | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [uploading, setUploading] = useState(false);
 
   const { data: positions, isLoading } = useQuery({
     queryKey: ["org-positions"],
@@ -58,6 +61,7 @@ function AdminOrganisasi() {
         title: form.title,
         student_name: form.student_name,
         order_index: Number(form.order_index) || 0,
+        photo_url: form.photo_url || null,
       };
       if (editing) return update({ data: { id: editing.id, ...payload } });
       return create({ data: payload });
@@ -93,6 +97,7 @@ function AdminOrganisasi() {
       title: position.title,
       student_name: position.student_name,
       order_index: String(position.order_index),
+      photo_url: position.photo_url ?? "",
     });
     setOpen(true);
   };
@@ -136,6 +141,13 @@ function AdminOrganisasi() {
                   required
                 />
               </div>
+              <ImageUpload
+                value={form.photo_url}
+                onChange={(url) => setForm({ ...form, photo_url: url })}
+                onUploadingChange={setUploading}
+                folder="organisasi"
+                label="Foto pengurus (opsional)"
+              />
               <div className="space-y-2">
                 <Label htmlFor="order_index">Urutan tampil</Label>
                 <Input
@@ -146,7 +158,7 @@ function AdminOrganisasi() {
                 />
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={saveMutation.isPending}>
+                <Button type="submit" disabled={saveMutation.isPending || uploading}>
                   {saveMutation.isPending ? "Menyimpan..." : "Simpan"}
                 </Button>
               </DialogFooter>
@@ -166,9 +178,18 @@ function AdminOrganisasi() {
           {positions.map((position) => (
             <Card key={position.id}>
               <CardContent className="flex items-center justify-between gap-4 py-4">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{position.title}</p>
-                  <p className="text-sm text-muted-foreground">{position.student_name}</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+                    {position.photo_url ? (
+                      <img src={position.photo_url} alt={position.student_name} className="h-full w-full object-cover" />
+                    ) : (
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{position.title}</p>
+                    <p className="text-sm text-muted-foreground">{position.student_name}</p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(position)}>

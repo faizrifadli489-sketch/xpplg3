@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listOrgPositions } from "@/lib/org.functions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { User } from "lucide-react";
 
 export const Route = createFileRoute("/organisasi")({
   head: () => ({
@@ -47,7 +48,16 @@ function OrganisasiPage() {
               key={position.id}
               className="flex items-center justify-between gap-4 border-b border-border py-4 last:border-b-0"
             >
-              <span className="font-medium text-foreground">{position.student_name}</span>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+                  {position.photo_url ? (
+                    <img src={position.photo_url} alt={position.student_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+                <span className="truncate font-medium text-foreground">{position.student_name}</span>
+              </div>
               <span className="shrink-0 font-mono text-xs text-muted-foreground">{position.title}</span>
             </div>
           ))}

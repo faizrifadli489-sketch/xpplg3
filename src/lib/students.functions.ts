@@ -7,7 +7,7 @@ const StudentSchema = z.object({
   nickname: z.string().optional(),
   nis: z.string().optional(),
   gender: z.enum(["L", "P"]).optional(),
-  photo_url: z.string().url().optional(),
+  photo_url: z.string().url().nullable().optional(),
 });
 
 const StudentUpdateSchema = StudentSchema.partial().extend({

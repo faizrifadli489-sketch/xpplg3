@@ -46,6 +46,11 @@ export const Route = createFileRoute("/blog/$slug")({
   ),
 });
 
+// Editor admin berupa textarea biasa, jadi isinya bisa teks polos atau HTML.
+function looksLikeHtml(text: string) {
+  return /<\/?[a-z][\s\S]*?>/i.test(text);
+}
+
 function BlogDetailPage() {
   const { slug } = Route.useParams();
   const fetchPost = useServerFn(getPublishedPostBySlug);
@@ -85,10 +90,11 @@ function BlogDetailPage() {
         </div>
       )}
 
-      <div
-        className="prose prose-slate mt-8 max-w-none dark:prose-invert"
-        dangerouslySetInnerHTML={{ __html: post.content }}
-      />
+      {looksLikeHtml(post.content) ? (
+        <div className="article-content mt-8" dangerouslySetInnerHTML={{ __html: post.content }} />
+      ) : (
+        <div className="article-content mt-8 whitespace-pre-wrap">{post.content}</div>
+      )}
     </article>
   );
 }

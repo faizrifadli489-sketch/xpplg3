@@ -6,9 +6,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Beranda — X PPLG 3" },
-      { name: "description", content: "Website resmi kelas X PPLG 3. Lihat profil kelas, daftar siswa, blog, dan struktur organisasi." },
+      { name: "description", content: "Website resmi kelas X PPLG 3 SMKN 1 Leuwimunding. Lihat profil kelas, daftar siswa, blog, dan struktur organisasi." },
       { property: "og:title", content: "Beranda — X PPLG 3" },
-      { property: "og:description", content: "Website resmi kelas X PPLG 3. Lihat profil kelas, daftar siswa, blog, dan struktur organisasi." },
+      { property: "og:description", content: "Website resmi kelas X PPLG 3 SMKN 1 Leuwimunding. Lihat profil kelas, daftar siswa, blog, dan struktur organisasi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -51,6 +51,9 @@ function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <div className="flex flex-col items-start gap-12 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-xl">
+              <p className="mb-3 font-mono text-xs uppercase tracking-widest text-primary-foreground/60">
+                SMKN 1 Leuwimunding
+              </p>
               <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
                 Kelas X PPLG 3
               </h1>

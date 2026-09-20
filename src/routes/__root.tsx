@@ -82,11 +82,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "X PPLG 3" },
-      { name: "description", content: "Website resmi kelas X PPLG 3 — daftar siswa, blog, dan struktur organisasi." },
+      { title: "X PPLG 3 — SMKN 1 Leuwimunding" },
+      { name: "description", content: "Website resmi kelas X PPLG 3 SMKN 1 Leuwimunding — daftar siswa, blog, dan struktur organisasi." },
       { name: "author", content: "X PPLG 3" },
-      { property: "og:title", content: "X PPLG 3" },
-      { property: "og:description", content: "Website resmi kelas X PPLG 3 — daftar siswa, blog, dan struktur organisasi." },
+      { property: "og:title", content: "X PPLG 3 — SMKN 1 Leuwimunding" },
+      { property: "og:description", content: "Website resmi kelas X PPLG 3 SMKN 1 Leuwimunding — daftar siswa, blog, dan struktur organisasi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@xpplg3" },
@@ -161,8 +161,13 @@ function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="h-2 w-2 rounded-full bg-spark" aria-hidden="true" />
-          <span className="font-display text-base font-semibold tracking-tight text-foreground">
-            X PPLG 3
+          <span className="flex flex-col leading-tight">
+            <span className="font-display text-base font-semibold tracking-tight text-foreground">
+              X PPLG 3
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              SMKN 1 Leuwimunding
+            </span>
           </span>
         </Link>
 
@@ -258,7 +263,7 @@ function Footer() {
   return (
     <footer className="border-t border-border">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 font-mono text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
-        <p>© {new Date().getFullYear()} X PPLG 3, dibuat oleh siswa kelas</p>
+        <p>© {new Date().getFullYear()} X PPLG 3 SMKN 1 Leuwimunding, dibuat oleh siswa kelas</p>
         <p>Program Keahlian PPLG</p>
       </div>
     </footer>
