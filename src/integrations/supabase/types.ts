@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      events: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          show_countdown: boolean
+          title: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          show_countdown?: boolean
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          show_countdown?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
       org_positions: {
         Row: {
           created_at: string
@@ -45,6 +78,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "org_positions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      piket_assignments: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          id?: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piket_assignments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
@@ -88,6 +150,68 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_entries: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          room: string | null
+          start_time: string
+          subject: string
+          teacher: string | null
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          room?: string | null
+          start_time: string
+          subject: string
+          teacher?: string | null
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          room?: string | null
+          start_time?: string
+          subject?: string
+          teacher?: string | null
+        }
+        Relationships: []
+      }
+      student_accounts: {
+        Row: {
+          created_at: string
+          student_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          student_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          student_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_accounts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           created_at: string
@@ -95,7 +219,6 @@ export type Database = {
           gender: string | null
           id: string
           nickname: string | null
-          nis: string | null
           photo_url: string | null
         }
         Insert: {
@@ -104,7 +227,6 @@ export type Database = {
           gender?: string | null
           id?: string
           nickname?: string | null
-          nis?: string | null
           photo_url?: string | null
         }
         Update: {
@@ -113,10 +235,47 @@ export type Database = {
           gender?: string | null
           id?: string
           nickname?: string | null
-          nis?: string | null
           photo_url?: string | null
         }
         Relationships: []
+      }
+      suggestions: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          is_read: boolean
+          message: string
+          student_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          is_read?: boolean
+          message: string
+          student_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          is_read?: boolean
+          message?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -141,6 +300,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_student_id: { Args: never; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

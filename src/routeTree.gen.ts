@@ -13,10 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
+import { Route as JadwalRouteImport } from './routes/jadwal'
 import { Route as OrganisasiRouteImport } from './routes/organisasi'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SiswaRouteImport } from './routes/siswa'
+import { Route as AuthenticatedSaranRouteImport } from './routes/_authenticated/saran'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -24,6 +26,9 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated/admin.blog'
 import { Route as AuthenticatedAdminOrganisasiRouteImport } from './routes/_authenticated/admin.organisasi'
 import { Route as AuthenticatedAdminSiswaRouteImport } from './routes/_authenticated/admin.siswa'
+import { Route as AuthenticatedAdminSaranRouteImport } from './routes/_authenticated/admin.saran'
+import { Route as AuthenticatedAdminJadwalRouteImport } from './routes/_authenticated/admin.jadwal'
+import { Route as AuthenticatedAdminAcaraRouteImport } from './routes/_authenticated/admin.acara'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -42,6 +47,11 @@ const AuthRoute = AuthRouteImport.update({
 const BlogRoute = BlogRouteImport.update({
   id: '/blog',
   path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JadwalRoute = JadwalRouteImport.update({
+  id: '/jadwal',
+  path: '/jadwal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrganisasiRoute = OrganisasiRouteImport.update({
@@ -63,6 +73,11 @@ const SiswaRoute = SiswaRouteImport.update({
   id: '/siswa',
   path: '/siswa',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSaranRoute = AuthenticatedSaranRouteImport.update({
+  id: '/saran',
+  path: '/saran',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
@@ -100,20 +115,40 @@ const AuthenticatedAdminSiswaRoute = AuthenticatedAdminSiswaRouteImport.update({
   path: '/siswa',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminSaranRoute = AuthenticatedAdminSaranRouteImport.update({
+  id: '/saran',
+  path: '/saran',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminJadwalRoute = AuthenticatedAdminJadwalRouteImport.update({
+  id: '/jadwal',
+  path: '/jadwal',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminAcaraRoute = AuthenticatedAdminAcaraRouteImport.update({
+  id: '/acara',
+  path: '/acara',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
+  '/jadwal': typeof JadwalRoute
   '/organisasi': typeof OrganisasiRoute
   '/profil': typeof ProfilRoute
   '/setup': typeof SetupRoute
   '/siswa': typeof SiswaRoute
+  '/saran': typeof AuthenticatedSaranRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/admin/acara': typeof AuthenticatedAdminAcaraRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
+  '/admin/jadwal': typeof AuthenticatedAdminJadwalRoute
   '/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
+  '/admin/saran': typeof AuthenticatedAdminSaranRoute
   '/admin/siswa': typeof AuthenticatedAdminSiswaRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -121,13 +156,18 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/blog': typeof BlogIndexRoute
+  '/jadwal': typeof JadwalRoute
   '/organisasi': typeof OrganisasiRoute
   '/profil': typeof ProfilRoute
   '/setup': typeof SetupRoute
   '/siswa': typeof SiswaRoute
+  '/saran': typeof AuthenticatedSaranRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/admin/acara': typeof AuthenticatedAdminAcaraRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
+  '/admin/jadwal': typeof AuthenticatedAdminJadwalRoute
   '/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
+  '/admin/saran': typeof AuthenticatedAdminSaranRoute
   '/admin/siswa': typeof AuthenticatedAdminSiswaRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
@@ -137,15 +177,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
+  '/jadwal': typeof JadwalRoute
   '/organisasi': typeof OrganisasiRoute
   '/profil': typeof ProfilRoute
   '/setup': typeof SetupRoute
   '/siswa': typeof SiswaRoute
+  '/_authenticated/saran': typeof AuthenticatedSaranRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/': typeof BlogIndexRoute
+  '/_authenticated/admin/acara': typeof AuthenticatedAdminAcaraRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRoute
+  '/_authenticated/admin/jadwal': typeof AuthenticatedAdminJadwalRoute
   '/_authenticated/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
+  '/_authenticated/admin/saran': typeof AuthenticatedAdminSaranRoute
   '/_authenticated/admin/siswa': typeof AuthenticatedAdminSiswaRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -155,15 +200,20 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/blog'
+    | '/jadwal'
     | '/organisasi'
     | '/profil'
     | '/setup'
     | '/siswa'
+    | '/saran'
     | '/admin'
     | '/blog/$slug'
     | '/blog/'
+    | '/admin/acara'
     | '/admin/blog'
+    | '/admin/jadwal'
     | '/admin/organisasi'
+    | '/admin/saran'
     | '/admin/siswa'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -171,13 +221,18 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/blog'
+    | '/jadwal'
     | '/organisasi'
     | '/profil'
     | '/setup'
     | '/siswa'
+    | '/saran'
     | '/blog/$slug'
+    | '/admin/acara'
     | '/admin/blog'
+    | '/admin/jadwal'
     | '/admin/organisasi'
+    | '/admin/saran'
     | '/admin/siswa'
     | '/admin'
   id:
@@ -186,15 +241,20 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/blog'
+    | '/jadwal'
     | '/organisasi'
     | '/profil'
     | '/setup'
     | '/siswa'
+    | '/_authenticated/saran'
     | '/_authenticated/admin'
     | '/blog/$slug'
     | '/blog/'
+    | '/_authenticated/admin/acara'
     | '/_authenticated/admin/blog'
+    | '/_authenticated/admin/jadwal'
     | '/_authenticated/admin/organisasi'
+    | '/_authenticated/admin/saran'
     | '/_authenticated/admin/siswa'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
@@ -204,6 +264,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   BlogRoute: typeof BlogRouteWithChildren
+  JadwalRoute: typeof JadwalRoute
   OrganisasiRoute: typeof OrganisasiRoute
   ProfilRoute: typeof ProfilRoute
   SetupRoute: typeof SetupRoute
@@ -240,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jadwal': {
+      id: '/jadwal'
+      path: '/jadwal'
+      fullPath: '/jadwal'
+      preLoaderRoute: typeof JadwalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organisasi': {
       id: '/organisasi'
       path: '/organisasi'
@@ -267,6 +335,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/siswa'
       preLoaderRoute: typeof SiswaRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/saran': {
+      id: '/_authenticated/saran'
+      path: '/saran'
+      fullPath: '/saran'
+      preLoaderRoute: typeof AuthenticatedSaranRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -296,6 +371,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/acara': {
+      id: '/_authenticated/admin/acara'
+      path: '/acara'
+      fullPath: '/admin/acara'
+      preLoaderRoute: typeof AuthenticatedAdminAcaraRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/jadwal': {
+      id: '/_authenticated/admin/jadwal'
+      path: '/jadwal'
+      fullPath: '/admin/jadwal'
+      preLoaderRoute: typeof AuthenticatedAdminJadwalRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/saran': {
+      id: '/_authenticated/admin/saran'
+      path: '/saran'
+      fullPath: '/admin/saran'
+      preLoaderRoute: typeof AuthenticatedAdminSaranRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/blog': {
       id: '/_authenticated/admin/blog'
       path: '/blog'
@@ -321,6 +417,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAcaraRoute: typeof AuthenticatedAdminAcaraRoute
+  AuthenticatedAdminJadwalRoute: typeof AuthenticatedAdminJadwalRoute
+  AuthenticatedAdminSaranRoute: typeof AuthenticatedAdminSaranRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
   AuthenticatedAdminOrganisasiRoute: typeof AuthenticatedAdminOrganisasiRoute
   AuthenticatedAdminSiswaRoute: typeof AuthenticatedAdminSiswaRoute
@@ -328,6 +427,9 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAcaraRoute: AuthenticatedAdminAcaraRoute,
+  AuthenticatedAdminJadwalRoute: AuthenticatedAdminJadwalRoute,
+  AuthenticatedAdminSaranRoute: AuthenticatedAdminSaranRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
   AuthenticatedAdminOrganisasiRoute: AuthenticatedAdminOrganisasiRoute,
   AuthenticatedAdminSiswaRoute: AuthenticatedAdminSiswaRoute,
@@ -339,10 +441,12 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedSaranRoute: typeof AuthenticatedSaranRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedSaranRoute: AuthenticatedSaranRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -365,6 +469,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   BlogRoute: BlogRouteWithChildren,
+  JadwalRoute: JadwalRoute,
   OrganisasiRoute: OrganisasiRoute,
   ProfilRoute: ProfilRoute,
   SetupRoute: SetupRoute,

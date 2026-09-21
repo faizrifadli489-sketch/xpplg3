@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Users, BookOpen, Network, ArrowRight } from "lucide-react";
+import { TodayPanel } from "@/components/class-widgets";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -95,6 +96,10 @@ function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 pt-14 sm:px-6 lg:px-8">
+        <TodayPanel />
       </section>
 
       <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">

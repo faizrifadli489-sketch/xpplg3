@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { ChangePasswordButton } from "@/components/change-password-button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
@@ -145,11 +146,12 @@ function RootComponent() {
 }
 
 function Header() {
-  const { user } = useAuth();
+  const { user, isAdmin, studentId } = useAuth();
   const [open, setOpen] = useState(false);
 
   const links = [
     { to: "/", label: "Beranda" },
+    { to: "/jadwal", label: "Jadwal" },
     { to: "/profil", label: "Profil" },
     { to: "/siswa", label: "Siswa" },
     { to: "/blog", label: "Blog" },
@@ -187,14 +189,22 @@ function Header() {
         <div className="hidden items-center gap-2 md:flex">
           {user ? (
             <>
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/admin">Dashboard</Link>
-              </Button>
+              {isAdmin && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/admin">Dashboard</Link>
+                </Button>
+              )}
+              {studentId && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/saran">Kotak Saran</Link>
+                </Button>
+              )}
+              <ChangePasswordButton />
               <LogoutButton />
             </>
           ) : (
             <Button asChild size="sm">
-              <Link to="/auth">Login Admin</Link>
+              <Link to="/auth">Login</Link>
             </Button>
           )}
         </div>
@@ -224,13 +234,25 @@ function Header() {
             ))}
             {user ? (
               <>
-                <Link
-                  to="/admin"
-                  onClick={() => setOpen(false)}
-                  className="border-l-2 border-transparent px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Dashboard
-                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className="border-l-2 border-transparent px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                {studentId && (
+                  <Link
+                    to="/saran"
+                    onClick={() => setOpen(false)}
+                    className="border-l-2 border-transparent px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    Kotak Saran
+                  </Link>
+                )}
+                <ChangePasswordButton mobile />
                 <LogoutButton mobile />
               </>
             ) : (
@@ -239,7 +261,7 @@ function Header() {
                 onClick={() => setOpen(false)}
                 className="border-l-2 border-transparent px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
-                Login Admin
+                Login
               </Link>
             )}
           </nav>

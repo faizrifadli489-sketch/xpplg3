@@ -57,7 +57,6 @@ function SiswaPage() {
                   {student.nickname && <p className="text-sm text-muted-foreground">{student.nickname}</p>}
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                     {student.gender === "L" ? "Laki-laki" : student.gender === "P" ? "Perempuan" : "-"}
-                    {student.nis ? ` · NIS ${student.nis}` : ""}
                   </p>
                 </div>
               </CardContent>

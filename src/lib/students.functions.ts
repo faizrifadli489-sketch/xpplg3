@@ -5,7 +5,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const StudentSchema = z.object({
   full_name: z.string().min(1),
   nickname: z.string().optional(),
-  nis: z.string().optional(),
   gender: z.enum(["L", "P"]).optional(),
   photo_url: z.string().url().nullable().optional(),
 });
@@ -54,7 +53,6 @@ export const createStudent = createServerFn({ method: "POST" })
       .insert({
         full_name: data.full_name,
         nickname: data.nickname ?? null,
-        nis: data.nis ?? null,
         gender: data.gender ?? null,
         photo_url: data.photo_url ?? null,
       })
@@ -75,13 +73,11 @@ export const updateStudent = createServerFn({ method: "POST" })
     const updateData: {
       full_name?: string;
       nickname?: string | null;
-      nis?: string | null;
       gender?: "L" | "P" | null;
       photo_url?: string | null;
     } = {};
     if (data.full_name !== undefined) updateData.full_name = data.full_name;
     if (data.nickname !== undefined) updateData.nickname = data.nickname || null;
-    if (data.nis !== undefined) updateData.nis = data.nis || null;
     if (data.gender !== undefined) updateData.gender = data.gender ?? null;
     if (data.photo_url !== undefined) updateData.photo_url = data.photo_url || null;
 
@@ -103,10 +99,26 @@ export const deleteStudent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
+    // Kalau siswa punya akun login, akun Auth-nya ikut dihapus setelah datanya terhapus.
+    const { data: account } = await context.supabase
+      .from("student_accounts")
+      .select("user_id")
+      .eq("student_id", data.id)
+      .maybeSingle();
+
     const { error } = await context.supabase.from("students").delete().eq("id", data.id);
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    if (account?.user_id) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.auth.admin.deleteUser(account.user_id);
+      } catch (err) {
+        console.error("Gagal menghapus akun Auth siswa:", err);
+      }
     }
 
     return { success: true };

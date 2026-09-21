@@ -1,7 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { loginIdentifierToEmail } from "@/lib/username";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,10 +12,10 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Login Admin — X PPLG 3" },
-      { name: "description", content: "Masuk ke dashboard admin kelas X PPLG 3." },
-      { property: "og:title", content: "Login Admin — X PPLG 3" },
-      { property: "og:description", content: "Masuk ke dashboard admin kelas X PPLG 3." },
+      { title: "Login — X PPLG 3" },
+      { name: "description", content: "Masuk ke website kelas X PPLG 3." },
+      { property: "og:title", content: "Login — X PPLG 3" },
+      { property: "og:description", content: "Masuk ke website kelas X PPLG 3." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,48 +25,54 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [email, setEmail] = useState("");
+  const { user, isAdmin, roleLoading } = useAuth();
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) navigate({ to: "/admin", replace: true });
-  }, [user, navigate]);
+    if (user && !roleLoading) navigate({ to: isAdmin ? "/admin" : "/saran", replace: true });
+  }, [user, isAdmin, roleLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginIdentifierToEmail(identifier),
+      password,
+    });
     setLoading(false);
 
     if (error) {
-      toast.error("Gagal masuk: " + error.message);
+      toast.error("Gagal masuk: nama atau password salah.");
       return;
     }
 
+    // Pengalihan halaman ditangani useEffect di atas setelah role selesai dicek.
     toast.success("Berhasil masuk.");
-    navigate({ to: "/admin", replace: true });
   };
 
   return (
     <div className="mx-auto flex max-w-md flex-col justify-center px-4 py-20">
       <Card className="shadow-none">
         <CardHeader>
-          <CardTitle>Login Admin</CardTitle>
-          <CardDescription>Masuk untuk mengelola konten kelas X PPLG 3.</CardDescription>
+          <CardTitle>Login</CardTitle>
+          <CardDescription>
+            Siswa masuk dengan nama lengkap dan password dari admin. Admin masuk dengan email.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Nama lengkap atau email</Label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="username"
+                autoCapitalize="none"
               />
             </div>
             <div className="space-y-2">
@@ -84,10 +91,7 @@ function AuthPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Belum punya akun admin?{" "}
-            <Link to="/setup" className="font-medium text-primary hover:underline">
-              Buat akun admin pertama
-            </Link>
+            Belum punya akun? Minta ke admin kelas.
           </p>
         </CardContent>
       </Card>
