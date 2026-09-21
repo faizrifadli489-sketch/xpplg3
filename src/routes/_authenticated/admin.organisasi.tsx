@@ -16,9 +16,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, Plus, User } from "lucide-react";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/image-upload";
+import { descendantIds } from "@/lib/org-tree";
 
 export const Route = createFileRoute("/_authenticated/admin/organisasi")({
   component: AdminOrganisasi,
@@ -30,11 +32,20 @@ type OrgRow = {
   order_index: number;
   student_name: string;
   photo_url: string | null;
+  parent_id: string | null;
 };
 
-type FormState = { title: string; student_name: string; order_index: string; photo_url: string };
+type FormState = {
+  title: string;
+  student_name: string;
+  order_index: string;
+  photo_url: string;
+  parent_id: string;
+};
 
-const emptyForm: FormState = { title: "", student_name: "", order_index: "0", photo_url: "" };
+const NO_PARENT = "none";
+
+const emptyForm: FormState = { title: "", student_name: "", order_index: "0", photo_url: "", parent_id: NO_PARENT };
 
 function AdminOrganisasi() {
   const queryClient = useQueryClient();
@@ -55,6 +66,13 @@ function AdminOrganisasi() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["org-positions"] });
 
+  const titleById = new Map((positions ?? []).map((p) => [p.id, p.title]));
+  // Atasan tidak boleh dirinya sendiri atau bawahannya (biar tidak melingkar).
+  const blockedIds = editing
+    ? new Set([editing.id, ...descendantIds(positions ?? [], editing.id)])
+    : new Set<string>();
+  const parentOptions = (positions ?? []).filter((p) => !blockedIds.has(p.id));
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -62,6 +80,7 @@ function AdminOrganisasi() {
         student_name: form.student_name,
         order_index: Number(form.order_index) || 0,
         photo_url: form.photo_url || null,
+        parent_id: form.parent_id === NO_PARENT ? null : form.parent_id,
       };
       if (editing) return update({ data: { id: editing.id, ...payload } });
       return create({ data: payload });
@@ -98,6 +117,7 @@ function AdminOrganisasi() {
       student_name: position.student_name,
       order_index: String(position.order_index),
       photo_url: position.photo_url ?? "",
+      parent_id: position.parent_id ?? NO_PARENT,
     });
     setOpen(true);
   };
@@ -140,6 +160,22 @@ function AdminOrganisasi() {
                   onChange={(e) => setForm({ ...form, student_name: e.target.value })}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Atasan (posisi di bagan)</Label>
+                <Select value={form.parent_id} onValueChange={(v) => setForm({ ...form, parent_id: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_PARENT}>Tidak ada (paling atas)</SelectItem>
+                    {parentOptions.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <ImageUpload
                 value={form.photo_url}
@@ -189,6 +225,11 @@ function AdminOrganisasi() {
                   <div className="min-w-0">
                     <p className="truncate font-medium">{position.title}</p>
                     <p className="text-sm text-muted-foreground">{position.student_name}</p>
+                    {position.parent_id && titleById.get(position.parent_id) && (
+                      <p className="font-mono text-xs text-muted-foreground">
+                        Di bawah: {titleById.get(position.parent_id)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-1">

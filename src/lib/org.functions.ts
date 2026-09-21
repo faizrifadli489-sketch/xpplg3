@@ -8,6 +8,7 @@ const OrgPositionSchema = z.object({
   student_name: z.string().min(1),
   student_id: z.string().uuid().optional(),
   photo_url: z.string().url().nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
 });
 
 const OrgPositionUpdateSchema = OrgPositionSchema.partial().extend({
@@ -42,6 +43,7 @@ export const createOrgPosition = createServerFn({ method: "POST" })
         student_name: data.student_name,
         student_id: data.student_id ?? null,
         photo_url: data.photo_url ?? null,
+        parent_id: data.parent_id ?? null,
       })
       .select()
       .single();
@@ -63,12 +65,14 @@ export const updateOrgPosition = createServerFn({ method: "POST" })
       student_name?: string;
       student_id?: string | null;
       photo_url?: string | null;
+      parent_id?: string | null;
     } = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.order_index !== undefined) updateData.order_index = data.order_index;
     if (data.student_name !== undefined) updateData.student_name = data.student_name;
     if (data.student_id !== undefined) updateData.student_id = data.student_id ?? null;
     if (data.photo_url !== undefined) updateData.photo_url = data.photo_url ?? null;
+    if (data.parent_id !== undefined) updateData.parent_id = data.parent_id ?? null;
 
     const { data: position, error } = await context.supabase
       .from("org_positions")

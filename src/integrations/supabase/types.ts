@@ -52,6 +52,7 @@ export type Database = {
           created_at: string
           id: string
           order_index: number
+          parent_id: string | null
           photo_url: string | null
           student_id: string | null
           student_name: string
@@ -61,6 +62,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_index?: number
+          parent_id?: string | null
           photo_url?: string | null
           student_id?: string | null
           student_name?: string
@@ -70,12 +72,20 @@ export type Database = {
           created_at?: string
           id?: string
           order_index?: number
+          parent_id?: string | null
           photo_url?: string | null
           student_id?: string | null
           student_name?: string
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "org_positions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_positions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "org_positions_student_id_fkey"
             columns: ["student_id"]

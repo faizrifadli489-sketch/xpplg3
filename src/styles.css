@@ -213,3 +213,74 @@
   border-radius: 0.5rem;
   background: var(--color-muted);
 }
+
+/* Bagan organisasi berbentuk pohon (layar lebar) */
+.org-chart ul {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0 0;
+  margin: 0;
+  list-style: none;
+}
+.org-chart li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0.5rem 0;
+  list-style: none;
+}
+.org-chart li::before,
+.org-chart li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 1.5rem;
+  border-top: 2px solid var(--color-border);
+}
+.org-chart li::after {
+  right: auto;
+  left: 50%;
+  border-left: 2px solid var(--color-border);
+}
+.org-chart li:only-child::before,
+.org-chart li:only-child::after {
+  display: none;
+}
+.org-chart li:only-child {
+  padding-top: 0;
+}
+.org-chart li:first-child::before,
+.org-chart li:last-child::after {
+  border: 0 none;
+}
+.org-chart li:last-child::before {
+  border-right: 2px solid var(--color-border);
+  border-radius: 0 6px 0 0;
+}
+.org-chart li:first-child::after {
+  border-radius: 6px 0 0 0;
+}
+.org-chart ul ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 1.5rem;
+  border-left: 2px solid var(--color-border);
+}
+/* Baris paling atas: tanpa garis ke atas */
+.org-chart > ul {
+  padding-top: 0;
+  gap: 2rem;
+}
+.org-chart > ul > li {
+  padding-top: 0;
+}
+.org-chart > ul > li::before,
+.org-chart > ul > li::after {
+  display: none;
+}
