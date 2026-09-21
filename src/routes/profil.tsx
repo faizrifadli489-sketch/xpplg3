@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getSiteContent } from "@/lib/site-content.functions";
 
 export const Route = createFileRoute("/profil")({
   head: () => ({
@@ -11,10 +12,35 @@ export const Route = createFileRoute("/profil")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  // Isi visi/misi/motto diambil dari database supaya bisa diedit admin (fallback ke teks bawaan).
+  loader: async () => {
+    try {
+      return await getSiteContent();
+    } catch {
+      return {} as Record<string, string>;
+    }
+  },
   component: ProfilPage,
 });
 
+const DEFAULTS = {
+  visi: "Menjadi kelas yang unggul dalam bidang pengembangan perangkat lunak dan gim, serta membentuk siswa yang kreatif, inovatif, dan berakhlak mulia.",
+  misi: "Menciptakan lingkungan belajar yang kolaboratif.\nMengasah keterampilan coding dan desain.\nMenumbuhkan sikap profesional dan tanggung jawab.",
+  motto: "Code with Passion, Create with Purpose",
+  motto_arti: "Kode dengan semangat, ciptakan dengan tujuan.",
+};
+
 function ProfilPage() {
+  const content = Route.useLoaderData();
+
+  const visi = content["visi"] ?? DEFAULTS.visi;
+  const misi = (content["misi"] ?? DEFAULTS.misi)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const motto = content["motto"] ?? DEFAULTS.motto;
+  const mottoArti = content["motto_arti"] ?? DEFAULTS.motto_arti;
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="mb-12 max-w-2xl">
@@ -27,25 +53,22 @@ function ProfilPage() {
       <div className="grid gap-x-8 gap-y-10 md:grid-cols-3">
         <div className="border-t-2 border-primary pt-4">
           <h2 className="font-display text-lg font-semibold">Visi</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Menjadi kelas yang unggul dalam bidang pengembangan perangkat lunak dan gim,
-            serta membentuk siswa yang kreatif, inovatif, dan berakhlak mulia.
-          </p>
+          <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{visi}</p>
         </div>
 
         <div className="border-t-2 border-primary pt-4">
           <h2 className="font-display text-lg font-semibold">Misi</h2>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted-foreground">
-            <li>Menciptakan lingkungan belajar yang kolaboratif.</li>
-            <li>Mengasah keterampilan coding dan desain.</li>
-            <li>Menumbuhkan sikap profesional dan tanggung jawab.</li>
+            {misi.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
           </ul>
         </div>
 
         <div className="border-t-2 border-spark pt-4">
           <h2 className="font-display text-lg font-semibold">Motto</h2>
-          <p className="mt-2 text-base font-medium text-foreground">"Code with Passion, Create with Purpose"</p>
-          <p className="mt-2 text-sm text-muted-foreground">Kode dengan semangat, ciptakan dengan tujuan.</p>
+          <p className="mt-2 text-base font-medium text-foreground">"{motto}"</p>
+          {mottoArti && <p className="mt-2 text-sm text-muted-foreground">{mottoArti}</p>}
         </div>
       </div>
     </div>

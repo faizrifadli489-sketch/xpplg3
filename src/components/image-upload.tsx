@@ -39,7 +39,7 @@ async function resizeToJpeg(file: File): Promise<Blob> {
 type ImageUploadProps = {
   value: string;
   onChange: (url: string) => void;
-  folder: "students" | "organisasi";
+  folder: string;
   label?: string;
   onUploadingChange?: (uploading: boolean) => void;
 };

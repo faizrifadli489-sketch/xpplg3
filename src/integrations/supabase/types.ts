@@ -14,6 +14,213 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_dues: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      cash_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          spent_on: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          spent_on?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          spent_on?: string
+        }
+        Relationships: []
+      }
+      cash_payments: {
+        Row: {
+          created_at: string
+          due_id: string
+          id: string
+          paid_at: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_id: string
+          id?: string
+          paid_at?: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          due_id?: string
+          id?: string
+          paid_at?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_payments_due_id_fkey"
+            columns: ["due_id"]
+            isOneToOne: false
+            referencedRelation: "cash_dues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_payments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_options: {
+        Row: {
+          id: string
+          label: string
+          order_index: number
+          poll_id: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          order_index?: number
+          poll_id: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          order_index?: number
+          poll_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_open: boolean
+          title: string
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_open?: boolean
+          title: string
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_open?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
+      site_content: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           category: string
@@ -310,8 +517,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cash_summary: {
+        Args: never
+        Returns: { total_in: number; total_out: number }[]
+      }
       current_student_id: { Args: never; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      poll_results: {
+        Args: { _poll_id: string }
+        Returns: { option_id: string; votes: number }[]
+      }
+      update_my_profile: {
+        Args: { _nickname: string; _photo_url: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin"

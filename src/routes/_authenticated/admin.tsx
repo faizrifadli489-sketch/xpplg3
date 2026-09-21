@@ -23,13 +23,16 @@ const tabs = [
   { to: "/admin/jadwal", label: "Jadwal" },
   { to: "/admin/acara", label: "Acara" },
   { to: "/admin/saran", label: "Saran" },
+  { to: "/admin/voting", label: "Voting" },
+  { to: "/admin/kas", label: "Kas" },
+  { to: "/admin/profil", label: "Profil Kelas" },
 ];
 
 function AdminLayout() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard Admin</h1>
-      <p className="mt-2 text-muted-foreground">Kelola siswa dan akun, blog, organisasi, jadwal, acara, dan kotak saran.</p>
+      <p className="mt-2 text-muted-foreground">Kelola siswa dan akun, blog, organisasi, jadwal, acara, kotak saran, voting, kas, dan profil kelas.</p>
 
       <nav className="mt-6 flex flex-wrap gap-1 border-b border-border pb-2">
         {tabs.map((tab) => (

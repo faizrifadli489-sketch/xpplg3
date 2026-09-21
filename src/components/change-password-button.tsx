@@ -3,11 +3,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
-export function ChangePasswordButton({ mobile = false }: { mobile?: boolean }) {
-  const [open, setOpen] = useState(false);
+export function ChangePasswordDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
@@ -35,16 +40,11 @@ export function ChangePasswordButton({ mobile = false }: { mobile?: boolean }) {
     toast.success("Password berhasil diganti.");
     setPassword("");
     setConfirm("");
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className={mobile ? "justify-start px-3" : ""}>
-          Ganti password
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Ganti password</DialogTitle>
@@ -80,5 +80,23 @@ export function ChangePasswordButton({ mobile = false }: { mobile?: boolean }) {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function ChangePasswordButton({ mobile = false }: { mobile?: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={mobile ? "justify-start px-3" : ""}
+        onClick={() => setOpen(true)}
+      >
+        Ganti password
+      </Button>
+      <ChangePasswordDialog open={open} onOpenChange={setOpen} />
+    </>
   );
 }

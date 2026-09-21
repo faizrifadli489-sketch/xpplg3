@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordButton } from "@/components/change-password-button";
+import { UserMenu } from "@/components/user-menu";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
@@ -158,6 +159,13 @@ function Header() {
     { to: "/organisasi", label: "Organisasi" },
   ];
 
+  const studentLinks = [
+    { to: "/profil-saya", label: "Profil Saya" },
+    { to: "/saran", label: "Kotak Saran" },
+    { to: "/voting", label: "Voting Kelas" },
+    { to: "/kas", label: "Kas Kelas" },
+  ] as const;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -194,12 +202,7 @@ function Header() {
                   <Link to="/admin">Dashboard</Link>
                 </Button>
               )}
-              {studentId && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/saran">Kotak Saran</Link>
-                </Button>
-              )}
-              <ChangePasswordButton />
+              <UserMenu isStudent={!!studentId} />
               <LogoutButton />
             </>
           ) : (
@@ -243,15 +246,17 @@ function Header() {
                     Dashboard
                   </Link>
                 )}
-                {studentId && (
-                  <Link
-                    to="/saran"
-                    onClick={() => setOpen(false)}
-                    className="border-l-2 border-transparent px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
-                  >
-                    Kotak Saran
-                  </Link>
-                )}
+                {studentId &&
+                  studentLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      onClick={() => setOpen(false)}
+                      className="border-l-2 border-transparent px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
                 <ChangePasswordButton mobile />
                 <LogoutButton mobile />
               </>
