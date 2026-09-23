@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { Reveal } from "@/components/reveal";
 
 export const Route = createFileRoute("/blog/")({
   head: () => ({
@@ -29,13 +30,14 @@ function BlogPage() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mb-10 max-w-2xl">
+    <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+      <Reveal className="mb-12 max-w-2xl">
+        <p className="mb-3 font-mono text-sm text-muted-foreground">// dokumentasi kelas</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Blog Kelas</h1>
         <p className="mt-4 text-lg text-muted-foreground">
           Pengumuman, cerita, dan dokumentasi dari kelas X PPLG 3.
         </p>
-      </div>
+      </Reveal>
 
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2">
@@ -44,7 +46,7 @@ function BlogPage() {
           ))}
         </div>
       ) : posts && posts.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2">
+        <Reveal className="grid gap-6 md:grid-cols-2">
           {posts.map((post) => (
             <Card key={post.id} className="flex flex-col overflow-hidden rounded-lg shadow-none">
               {post.cover_image_url && (
@@ -64,7 +66,7 @@ function BlogPage() {
               </CardHeader>
             </Card>
           ))}
-        </div>
+        </Reveal>
       ) : (
         <p className="text-center text-muted-foreground">Belum ada artikel yang dipublikasikan.</p>
       )}

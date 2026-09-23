@@ -254,6 +254,24 @@ export type Database = {
         }
         Relationships: []
       }
+      hero_taglines: {
+        Row: {
+          created_at: string
+          id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          text?: string
+        }
+        Relationships: []
+      }
       org_positions: {
         Row: {
           created_at: string

@@ -12,6 +12,7 @@ import {
   type ScheduleItem,
 } from "@/components/class-widgets";
 import { DAY_LABELS, SCHOOL_DAYS } from "@/lib/time";
+import { Reveal } from "@/components/reveal";
 
 export const Route = createFileRoute("/jadwal")({
   head: () => ({
@@ -39,30 +40,33 @@ function JadwalPage() {
   const dayPiket = ((piket.data ?? []) as unknown as PiketItem[]).filter((p) => p.day_of_week === activeDay);
 
   return (
-    <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Jadwal & Piket</h1>
-      <p className="mt-3 text-muted-foreground">
-        Jadwal pelajaran, siapa yang piket, dan hitung mundur acara penting kelas X PPLG 3.
-      </p>
+    <section className="mx-auto max-w-4xl px-4 py-20 sm:px-6 lg:px-8">
+      <Reveal>
+        <p className="mb-3 font-mono text-sm text-muted-foreground">// hari ini & seterusnya</p>
+        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Jadwal & Piket</h1>
+        <p className="mt-3 text-muted-foreground">
+          Jadwal pelajaran, siapa yang piket, dan hitung mundur acara penting kelas X PPLG 3.
+        </p>
 
-      <div className="mt-8 flex flex-wrap gap-2">
-        {SCHOOL_DAYS.map((day) => (
-          <button
-            key={day}
-            type="button"
-            onClick={() => setSelectedDay(day)}
-            className={
-              "rounded-md border px-3 py-2 text-sm font-medium transition-colors " +
-              (day === activeDay
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-foreground/70 hover:bg-accent hover:text-accent-foreground")
-            }
-          >
-            {DAY_LABELS[day]}
-            {today === day && <span className="ml-1.5 text-xs opacity-80">(hari ini)</span>}
-          </button>
-        ))}
-      </div>
+        <div className="mt-8 flex flex-wrap gap-2">
+          {SCHOOL_DAYS.map((day) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setSelectedDay(day)}
+              className={
+                "rounded-md border px-3 py-2 text-sm font-medium transition-colors " +
+                (day === activeDay
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-foreground/70 hover:bg-accent hover:text-accent-foreground")
+              }
+            >
+              {DAY_LABELS[day]}
+              {today === day && <span className="ml-1.5 text-xs opacity-80">(hari ini)</span>}
+            </button>
+          ))}
+        </div>
+      </Reveal>
 
       {schedule.isError || piket.isError ? (
         <p className="mt-8 text-muted-foreground">Data jadwal belum bisa dimuat. Coba muat ulang halaman.</p>
@@ -84,7 +88,7 @@ function JadwalPage() {
         </div>
       )}
 
-      <div className="mt-14">
+      <Reveal className="mt-16">
         <h2 className="font-display text-2xl font-semibold tracking-tight">Acara & countdown</h2>
         <div className="mt-4">
           {events.isError ? (
@@ -93,7 +97,7 @@ function JadwalPage() {
             <UpcomingEvents events={(events.data ?? []) as EventItem[]} now={now} />
           )}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

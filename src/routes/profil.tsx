@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getSiteContent } from "@/lib/site-content.functions";
+import { Reveal } from "@/components/reveal";
 
 export const Route = createFileRoute("/profil")({
   head: () => ({
@@ -42,34 +43,35 @@ function ProfilPage() {
   const mottoArti = content["motto_arti"] ?? DEFAULTS.motto_arti;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mb-12 max-w-2xl">
+    <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+      <Reveal className="mb-16 max-w-2xl">
+        <p className="mb-3 font-mono text-sm text-muted-foreground">// tentang kami</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Profil Kelas</h1>
         <p className="mt-4 text-lg text-muted-foreground">
           Mengenal lebih dekat X PPLG 3 SMKN 1 Leuwimunding, kelas PPLG yang penuh semangat berkarya.
         </p>
-      </div>
+      </Reveal>
 
       <div className="grid gap-x-8 gap-y-10 md:grid-cols-3">
-        <div className="border-t-2 border-primary pt-4">
+        <Reveal className="border-t-2 border-primary pt-4">
           <h2 className="font-display text-lg font-semibold">Visi</h2>
           <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{visi}</p>
-        </div>
+        </Reveal>
 
-        <div className="border-t-2 border-primary pt-4">
+        <Reveal delay={90} className="border-t-2 border-primary pt-4">
           <h2 className="font-display text-lg font-semibold">Misi</h2>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted-foreground">
             {misi.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
           </ul>
-        </div>
+        </Reveal>
 
-        <div className="border-t-2 border-spark pt-4">
+        <Reveal delay={180} className="border-t-2 border-spark pt-4">
           <h2 className="font-display text-lg font-semibold">Motto</h2>
           <p className="mt-2 text-base font-medium text-foreground">"{motto}"</p>
           {mottoArti && <p className="mt-2 text-sm text-muted-foreground">{mottoArti}</p>}
-        </div>
+        </Reveal>
       </div>
     </div>
   );

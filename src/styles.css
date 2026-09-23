@@ -303,7 +303,8 @@
   }
 }
 
-/* Satu momen bertanda tangan: kursor berkedip di akhir judul hero */
+/* Satu momen bertanda tangan: kursor di akhir judul hero — solid saat aktif
+   mengetik/menghapus, berkedip saat jeda (lewat class .caret-blink) */
 .caret {
   display: inline-block;
   width: 0.5em;
@@ -312,6 +313,8 @@
   border-radius: 1px;
   background: currentColor;
   vertical-align: -0.08em;
+}
+.caret.caret-blink {
   animation: caret-blink 1.1s step-end infinite;
 }
 @keyframes caret-blink {

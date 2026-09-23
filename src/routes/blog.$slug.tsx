@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { Reveal } from "@/components/reveal";
 
 export const Route = createFileRoute("/blog/$slug")({
   head: () => {
@@ -79,22 +80,24 @@ function BlogDetailPage() {
         </Link>
       </Button>
 
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{post.title}</h1>
-      <p className="mt-4 font-mono text-xs text-muted-foreground">
-        {post.created_at && format(new Date(post.created_at), "dd MMMM yyyy", { locale: id })}
-      </p>
+      <Reveal>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{post.title}</h1>
+        <p className="mt-4 font-mono text-xs text-muted-foreground">
+          {post.created_at && format(new Date(post.created_at), "dd MMMM yyyy", { locale: id })}
+        </p>
 
-      {post.cover_image_url && (
-        <div className="mt-8 overflow-hidden rounded-xl">
-          <img src={post.cover_image_url} alt={post.title} className="w-full object-cover" />
-        </div>
-      )}
+        {post.cover_image_url && (
+          <div className="mt-8 overflow-hidden rounded-xl">
+            <img src={post.cover_image_url} alt={post.title} className="w-full object-cover" />
+          </div>
+        )}
 
-      {looksLikeHtml(post.content) ? (
-        <div className="article-content mt-8" dangerouslySetInnerHTML={{ __html: post.content }} />
-      ) : (
-        <div className="article-content mt-8 whitespace-pre-wrap">{post.content}</div>
-      )}
+        {looksLikeHtml(post.content) ? (
+          <div className="article-content mt-8" dangerouslySetInnerHTML={{ __html: post.content }} />
+        ) : (
+          <div className="article-content mt-8 whitespace-pre-wrap">{post.content}</div>
+        )}
+      </Reveal>
     </article>
   );
 }

@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listOrgPositions } from "@/lib/org.functions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrgChart } from "@/components/org-chart";
+import { Reveal } from "@/components/reveal";
 
 export const Route = createFileRoute("/organisasi")({
   head: () => ({
@@ -27,13 +28,14 @@ function OrganisasiPage() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mb-10 max-w-2xl">
+    <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+      <Reveal className="mb-12 max-w-2xl">
+        <p className="mb-3 font-mono text-sm text-muted-foreground">// susunan pengurus</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           Struktur Organisasi
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">Susunan pengurus kelas X PPLG 3.</p>
-      </div>
+      </Reveal>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -42,7 +44,9 @@ function OrganisasiPage() {
           ))}
         </div>
       ) : positions && positions.length > 0 ? (
-        <OrgChart positions={positions} />
+        <Reveal>
+          <OrgChart positions={positions} />
+        </Reveal>
       ) : (
         <p className="text-center text-muted-foreground">Belum ada data struktur organisasi.</p>
       )}

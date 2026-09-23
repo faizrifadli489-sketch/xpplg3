@@ -5,6 +5,7 @@ import { listStudents } from "@/lib/students.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User } from "lucide-react";
+import { Reveal } from "@/components/reveal";
 
 export const Route = createFileRoute("/siswa")({
   head: () => ({
@@ -28,11 +29,12 @@ function SiswaPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mb-10 max-w-2xl">
+    <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <Reveal className="mb-12 max-w-2xl">
+        <p className="mb-3 font-mono text-sm text-muted-foreground">// anggota kelas</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Daftar Siswa</h1>
         <p className="mt-4 text-lg text-muted-foreground">Berikut adalah anggota kelas X PPLG 3.</p>
-      </div>
+      </Reveal>
 
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -41,7 +43,7 @@ function SiswaPage() {
           ))}
         </div>
       ) : students && students.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Reveal className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {students.map((student) => (
             <Card key={student.id} className="rounded-lg shadow-none">
               <CardContent className="flex items-center gap-4 p-4">
@@ -62,7 +64,7 @@ function SiswaPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </Reveal>
       ) : (
         <p className="text-center text-muted-foreground">Belum ada data siswa.</p>
       )}

@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Users, BookOpen, Network, ArrowRight } from "lucide-react";
 import { TodayPanel } from "@/components/class-widgets";
 import { Reveal } from "@/components/reveal";
+import { TypewriterHeading } from "@/components/typewriter-heading";
+import { listHeroTaglines } from "@/lib/hero-taglines.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,6 +17,14 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  // Kalimat judul hero diambil dari database supaya bisa diatur admin (fallback ke daftar kosong -> "Kelas X PPLG 3").
+  loader: async () => {
+    try {
+      return await listHeroTaglines();
+    } catch {
+      return [];
+    }
+  },
   component: HomePage,
 });
 
@@ -47,6 +57,8 @@ const sections = [
 ] as const;
 
 function HomePage() {
+  const taglines = Route.useLoaderData().map((t) => t.text);
+
   return (
     <>
       <section className="bg-primary text-primary-foreground">
@@ -54,10 +66,10 @@ function HomePage() {
           <div className="flex flex-col items-start gap-14 lg:flex-row lg:items-center lg:justify-between">
             <Reveal className="max-w-xl">
               <p className="mb-4 font-mono text-sm text-primary-foreground/55">// SMKN 1 Leuwimunding</p>
-              <h1 className="font-display text-5xl font-semibold tracking-tight sm:text-6xl">
-                Kelas X PPLG 3
-                <span className="caret" aria-hidden="true" />
-              </h1>
+              <TypewriterHeading
+                phrases={taglines}
+                className="font-display text-5xl font-semibold tracking-tight sm:text-6xl"
+              />
               <p className="mt-6 max-w-md text-base text-primary-foreground/80 sm:text-lg">
                 Pengembangan Perangkat Lunak dan Gim. Belajar menulis kode, merancang gim, dan
                 membangun proyek nyata bersama satu kelas.
