@@ -178,7 +178,7 @@ export function TodayPanel() {
     <div>
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Hari ini</p>
+          <p className="font-mono text-sm text-muted-foreground">// hari ini</p>
           <h2 className="font-display text-2xl font-semibold tracking-tight">
             {today === null ? "Memuat..." : today === 0 ? "Minggu, libur. Jadwal Senin:" : DAY_LABELS[today]}
           </h2>

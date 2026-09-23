@@ -284,3 +284,55 @@
 .org-chart > ul > li::after {
   display: none;
 }
+
+/* ---------- Scroll reveal: satu pola konsisten di seluruh halaman ---------- */
+.reveal {
+  opacity: 0;
+}
+.reveal.is-visible {
+  animation: reveal-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Satu momen bertanda tangan: kursor berkedip di akhir judul hero */
+.caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.9em;
+  margin-left: 0.14em;
+  border-radius: 1px;
+  background: currentColor;
+  vertical-align: -0.08em;
+  animation: caret-blink 1.1s step-end infinite;
+}
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+  }
+  .caret {
+    animation: none !important;
+    opacity: 1;
+  }
+}
