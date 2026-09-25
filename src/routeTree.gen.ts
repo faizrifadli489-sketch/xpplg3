@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as JadwalRouteImport } from './routes/jadwal'
+import { Route as PortofolioRouteImport } from './routes/portofolio'
 import { Route as OrganisasiRouteImport } from './routes/organisasi'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as SetupRouteImport } from './routes/setup'
@@ -32,6 +33,7 @@ import { Route as AuthenticatedAdminSiswaRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminSaranRouteImport } from './routes/_authenticated/admin.saran'
 import { Route as AuthenticatedAdminJadwalRouteImport } from './routes/_authenticated/admin.jadwal'
 import { Route as AuthenticatedAdminAcaraRouteImport } from './routes/_authenticated/admin.acara'
+import { Route as AuthenticatedAdminPortofolioRouteImport } from './routes/_authenticated/admin.portofolio'
 import { Route as AuthenticatedAdminVotingRouteImport } from './routes/_authenticated/admin.voting'
 import { Route as AuthenticatedAdminProfilRouteImport } from './routes/_authenticated/admin.profil'
 import { Route as AuthenticatedAdminKasRouteImport } from './routes/_authenticated/admin.kas'
@@ -58,6 +60,11 @@ const BlogRoute = BlogRouteImport.update({
 const JadwalRoute = JadwalRouteImport.update({
   id: '/jadwal',
   path: '/jadwal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortofolioRoute = PortofolioRouteImport.update({
+  id: '/portofolio',
+  path: '/portofolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrganisasiRoute = OrganisasiRouteImport.update({
@@ -166,6 +173,11 @@ const AuthenticatedAdminKasRoute = AuthenticatedAdminKasRouteImport.update({
   path: '/kas',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminPortofolioRoute = AuthenticatedAdminPortofolioRouteImport.update({
+  id: '/portofolio',
+  path: '/portofolio',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -173,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRouteWithChildren
   '/jadwal': typeof JadwalRoute
   '/organisasi': typeof OrganisasiRoute
+  '/portofolio': typeof PortofolioRoute
   '/profil': typeof ProfilRoute
   '/setup': typeof SetupRoute
   '/siswa': typeof SiswaRoute
@@ -187,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/admin/jadwal': typeof AuthenticatedAdminJadwalRoute
   '/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
+  '/admin/portofolio': typeof AuthenticatedAdminPortofolioRoute
   '/admin/saran': typeof AuthenticatedAdminSaranRoute
   '/admin/voting': typeof AuthenticatedAdminVotingRoute
   '/admin/profil': typeof AuthenticatedAdminProfilRoute
@@ -200,6 +214,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/jadwal': typeof JadwalRoute
   '/organisasi': typeof OrganisasiRoute
+  '/portofolio': typeof PortofolioRoute
   '/profil': typeof ProfilRoute
   '/setup': typeof SetupRoute
   '/siswa': typeof SiswaRoute
@@ -212,6 +227,7 @@ export interface FileRoutesByTo {
   '/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/admin/jadwal': typeof AuthenticatedAdminJadwalRoute
   '/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
+  '/admin/portofolio': typeof AuthenticatedAdminPortofolioRoute
   '/admin/saran': typeof AuthenticatedAdminSaranRoute
   '/admin/voting': typeof AuthenticatedAdminVotingRoute
   '/admin/profil': typeof AuthenticatedAdminProfilRoute
@@ -227,6 +243,7 @@ export interface FileRoutesById {
   '/blog': typeof BlogRouteWithChildren
   '/jadwal': typeof JadwalRoute
   '/organisasi': typeof OrganisasiRoute
+  '/portofolio': typeof PortofolioRoute
   '/profil': typeof ProfilRoute
   '/setup': typeof SetupRoute
   '/siswa': typeof SiswaRoute
@@ -241,6 +258,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRoute
   '/_authenticated/admin/jadwal': typeof AuthenticatedAdminJadwalRoute
   '/_authenticated/admin/organisasi': typeof AuthenticatedAdminOrganisasiRoute
+  '/_authenticated/admin/portofolio': typeof AuthenticatedAdminPortofolioRoute
   '/_authenticated/admin/saran': typeof AuthenticatedAdminSaranRoute
   '/_authenticated/admin/voting': typeof AuthenticatedAdminVotingRoute
   '/_authenticated/admin/profil': typeof AuthenticatedAdminProfilRoute
@@ -256,6 +274,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/jadwal'
     | '/organisasi'
+    | '/portofolio'
     | '/profil'
     | '/setup'
     | '/siswa'
@@ -270,6 +289,7 @@ export interface FileRouteTypes {
     | '/admin/blog'
     | '/admin/jadwal'
     | '/admin/organisasi'
+    | '/admin/portofolio'
     | '/admin/saran'
     | '/admin/voting'
     | '/admin/profil'
@@ -283,6 +303,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/jadwal'
     | '/organisasi'
+    | '/portofolio'
     | '/profil'
     | '/setup'
     | '/siswa'
@@ -295,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/blog'
     | '/admin/jadwal'
     | '/admin/organisasi'
+    | '/admin/portofolio'
     | '/admin/saran'
     | '/admin/voting'
     | '/admin/profil'
@@ -309,6 +331,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/jadwal'
     | '/organisasi'
+    | '/portofolio'
     | '/profil'
     | '/setup'
     | '/siswa'
@@ -323,6 +346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/blog'
     | '/_authenticated/admin/jadwal'
     | '/_authenticated/admin/organisasi'
+    | '/_authenticated/admin/portofolio'
     | '/_authenticated/admin/saran'
     | '/_authenticated/admin/voting'
     | '/_authenticated/admin/profil'
@@ -338,6 +362,7 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRouteWithChildren
   JadwalRoute: typeof JadwalRoute
   OrganisasiRoute: typeof OrganisasiRoute
+  PortofolioRoute: typeof PortofolioRoute
   ProfilRoute: typeof ProfilRoute
   SetupRoute: typeof SetupRoute
   SiswaRoute: typeof SiswaRoute
@@ -378,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/jadwal'
       fullPath: '/jadwal'
       preLoaderRoute: typeof JadwalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portofolio': {
+      id: '/portofolio'
+      path: '/portofolio'
+      fullPath: '/portofolio'
+      preLoaderRoute: typeof PortofolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/organisasi': {
@@ -513,6 +545,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/portofolio': {
+      id: '/_authenticated/admin/portofolio'
+      path: '/portofolio'
+      fullPath: '/admin/portofolio'
+      preLoaderRoute: typeof AuthenticatedAdminPortofolioRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/organisasi': {
       id: '/_authenticated/admin/organisasi'
       path: '/organisasi'
@@ -539,6 +578,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminKasRoute: typeof AuthenticatedAdminKasRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
   AuthenticatedAdminOrganisasiRoute: typeof AuthenticatedAdminOrganisasiRoute
+  AuthenticatedAdminPortofolioRoute: typeof AuthenticatedAdminPortofolioRoute
   AuthenticatedAdminSiswaRoute: typeof AuthenticatedAdminSiswaRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
@@ -552,6 +592,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminKasRoute: AuthenticatedAdminKasRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
   AuthenticatedAdminOrganisasiRoute: AuthenticatedAdminOrganisasiRoute,
+  AuthenticatedAdminPortofolioRoute: AuthenticatedAdminPortofolioRoute,
   AuthenticatedAdminSiswaRoute: AuthenticatedAdminSiswaRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
@@ -597,6 +638,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRouteWithChildren,
   JadwalRoute: JadwalRoute,
   OrganisasiRoute: OrganisasiRoute,
+  PortofolioRoute: PortofolioRoute,
   ProfilRoute: ProfilRoute,
   SetupRoute: SetupRoute,
   SiswaRoute: SiswaRoute,

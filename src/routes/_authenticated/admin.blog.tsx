@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listAllPosts, createPost, updatePost, deletePost } from "@/lib/posts.functions";
+import { listAllPosts, createPost, updatePost, deletePost, listPostImages } from "@/lib/posts.functions";
+import { ImageUpload } from "@/components/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/blog")({
@@ -42,9 +43,17 @@ type FormState = {
   content: string;
   cover_image_url: string;
   published: boolean;
+  images: string[];
 };
 
-const emptyForm: FormState = { title: "", slug: "", content: "", cover_image_url: "", published: false };
+const emptyForm: FormState = {
+  title: "",
+  slug: "",
+  content: "",
+  cover_image_url: "",
+  published: false,
+  images: [],
+};
 
 function AdminBlog() {
   const queryClient = useQueryClient();
@@ -52,6 +61,9 @@ function AdminBlog() {
   const create = useServerFn(createPost);
   const update = useServerFn(updatePost);
   const remove = useServerFn(deletePost);
+  const fetchPostImages = useServerFn(listPostImages);
+  const [uploading, setUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PostRow | null>(null);
@@ -74,6 +86,7 @@ function AdminBlog() {
         slug: form.slug || form.title,
         content: form.content,
         published: form.published,
+        images: form.images,
         ...(form.cover_image_url ? { cover_image_url: form.cover_image_url } : {}),
       };
       if (editing) return update({ data: { id: editing.id, ...payload } });
@@ -104,7 +117,7 @@ function AdminBlog() {
     setOpen(true);
   };
 
-  const openEdit = (post: PostRow) => {
+  const openEdit = async (post: PostRow) => {
     setEditing(post);
     setForm({
       title: post.title,
@@ -112,8 +125,16 @@ function AdminBlog() {
       content: post.content,
       cover_image_url: post.cover_image_url ?? "",
       published: post.published,
+      images: [],
     });
     setOpen(true);
+
+    try {
+      const images = await fetchPostImages({ data: { post_id: post.id } });
+      setForm((f) => ({ ...f, images: images.map((img) => img.image_url) }));
+    } catch {
+      // galeri gagal dimuat, form tetap bisa dipakai (anggap galeri kosong)
+    }
   };
 
   return (
@@ -165,13 +186,41 @@ function AdminBlog() {
                   required
                 />
               </div>
+              <ImageUpload
+                value={form.cover_image_url}
+                onChange={(url) => setForm({ ...form, cover_image_url: url })}
+                onUploadingChange={setUploading}
+                folder="blog"
+                label="Gambar sampul (opsional)"
+              />
+
               <div className="space-y-2">
-                <Label htmlFor="cover">URL gambar sampul (opsional)</Label>
-                <Input
-                  id="cover"
-                  type="url"
-                  value={form.cover_image_url}
-                  onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })}
+                <Label>Galeri foto (opsional, bisa lebih dari satu)</Label>
+                {form.images.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {form.images.map((url, index) => (
+                      <div key={url + index} className="group relative aspect-square overflow-hidden rounded-md">
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          aria-label="Hapus dari galeri"
+                          className="absolute right-1 top-1 rounded-full bg-background/90 p-1 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== index) })}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <ImageUpload
+                  value=""
+                  onChange={(url) => {
+                    if (url) setForm((f) => ({ ...f, images: [...f.images, url] }));
+                  }}
+                  onUploadingChange={setGalleryUploading}
+                  folder="blog"
+                  label="Tambah foto ke galeri"
                 />
               </div>
               <div className="flex items-center gap-3">
@@ -183,7 +232,7 @@ function AdminBlog() {
                 <Label htmlFor="published">Tampilkan ke publik</Label>
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={saveMutation.isPending}>
+                <Button type="submit" disabled={saveMutation.isPending || uploading || galleryUploading}>
                   {saveMutation.isPending ? "Menyimpan..." : "Simpan"}
                 </Button>
               </DialogFooter>

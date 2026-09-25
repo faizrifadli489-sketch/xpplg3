@@ -2,12 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const ImageListSchema = z.array(z.string().url()).max(12, "Maksimal 12 foto galeri").optional();
+
 const PostSchema = z.object({
   title: z.string().min(1),
   slug: z.string().min(1),
   content: z.string().min(1),
   cover_image_url: z.string().url().optional(),
   published: z.boolean().default(false),
+  images: ImageListSchema,
 });
 
 const PostUpdateSchema = PostSchema.partial().extend({
@@ -60,6 +63,22 @@ export const getPublishedPostBySlug = createServerFn({ method: "GET" })
     return post;
   });
 
+export const listPostImages = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ post_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data }) => {
+    const { createServerPublicClient } = await import("@/lib/supabase-public.server");
+    const supabasePublic = createServerPublicClient();
+
+    const { data: images, error } = await supabasePublic
+      .from("post_images")
+      .select("id, image_url")
+      .eq("post_id", data.post_id)
+      .order("order_index", { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return images ?? [];
+  });
+
 export const listAllPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -110,6 +129,13 @@ export const createPost = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
 
+    if (data.images && data.images.length > 0) {
+      const { error: imagesError } = await context.supabase
+        .from("post_images")
+        .insert(data.images.map((image_url, order_index) => ({ post_id: post.id, image_url, order_index })));
+      if (imagesError) throw new Error(imagesError.message);
+    }
+
     return post;
   });
 
@@ -139,6 +165,19 @@ export const updatePost = createServerFn({ method: "POST" })
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    // Kalau field images dikirim, ganti seluruh isi galeri (hapus lama, pasang yang baru).
+    if (data.images !== undefined) {
+      const { error: deleteError } = await context.supabase.from("post_images").delete().eq("post_id", data.id);
+      if (deleteError) throw new Error(deleteError.message);
+
+      if (data.images.length > 0) {
+        const { error: imagesError } = await context.supabase
+          .from("post_images")
+          .insert(data.images.map((image_url, order_index) => ({ post_id: data.id, image_url, order_index })));
+        if (imagesError) throw new Error(imagesError.message);
+      }
     }
 
     return post;

@@ -12,6 +12,10 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/use-theme";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { PwaInstallButton } from "@/components/pwa-install";
+import { registerServiceWorker } from "@/lib/register-sw";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordButton } from "@/components/change-password-button";
@@ -92,6 +96,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@xpplg3" },
+      { name: "theme-color", content: "#12786b" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "X PPLG 3" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -105,6 +114,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,
@@ -117,6 +128,12 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="id">
       <head>
+        {/* Kunci "xpplg3-theme" ini harus sama persis dengan hooks/use-theme.tsx */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("xpplg3-theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>
@@ -130,18 +147,25 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          <Footer />
-        </div>
-        <Toaster />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+            <Footer />
+          </div>
+          <Toaster />
+          <PwaInstallButton />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
@@ -157,6 +181,7 @@ function Header() {
     { to: "/siswa", label: "Siswa" },
     { to: "/blog", label: "Blog" },
     { to: "/organisasi", label: "Organisasi" },
+    { to: "/portofolio", label: "Portofolio" },
   ];
 
   const studentLinks = [
@@ -195,6 +220,7 @@ function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle />
           {user ? (
             <>
               {isAdmin && (
@@ -224,6 +250,9 @@ function Header() {
       {open && (
         <div className="border-t border-border px-4 py-2 md:hidden">
           <nav className="flex flex-col">
+            <div className="border-l-2 border-transparent px-1 py-1">
+              <ThemeToggle mobile />
+            </div>
             {links.map((link) => (
               <Link
                 key={link.to}

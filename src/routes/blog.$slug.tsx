@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getPublishedPostBySlug } from "@/lib/posts.functions";
+import { getPublishedPostBySlug, listPostImages } from "@/lib/posts.functions";
+import { GalleryGrid } from "@/components/gallery-lightbox";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
@@ -55,9 +56,15 @@ function looksLikeHtml(text: string) {
 function BlogDetailPage() {
   const { slug } = Route.useParams();
   const fetchPost = useServerFn(getPublishedPostBySlug);
+  const fetchImages = useServerFn(listPostImages);
   const { data: post, isLoading } = useQuery({
     queryKey: ["post", slug],
     queryFn: () => fetchPost({ data: { slug } }),
+  });
+  const { data: gallery } = useQuery({
+    queryKey: ["post-images", post?.id],
+    queryFn: () => fetchImages({ data: { post_id: post!.id } }),
+    enabled: !!post?.id,
   });
 
   if (isLoading) {
@@ -96,6 +103,13 @@ function BlogDetailPage() {
           <div className="article-content mt-8" dangerouslySetInnerHTML={{ __html: post.content }} />
         ) : (
           <div className="article-content mt-8 whitespace-pre-wrap">{post.content}</div>
+        )}
+
+        {gallery && gallery.length > 0 && (
+          <div className="mt-10">
+            <h2 className="mb-3 font-mono text-sm text-muted-foreground">// galeri foto</h2>
+            <GalleryGrid images={gallery} />
+          </div>
         )}
       </Reveal>
     </article>
