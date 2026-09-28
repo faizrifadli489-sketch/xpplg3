@@ -9,7 +9,7 @@ import {
   deletePortfolioProject,
 } from "@/lib/portfolio.functions";
 import { useAuth } from "@/hooks/useAuth";
-import { ImageUpload } from "@/components/image-upload";
+import { PortfolioThumbnail } from "@/components/portfolio-thumbnail";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,12 +183,13 @@ function PortofolioPage() {
                     onChange={(e) => setForm({ ...form, team_note: e.target.value })}
                   />
                 </div>
-                <ImageUpload
+                <PortfolioThumbnail
                   value={form.image_url}
-                  onChange={(url) => setForm({ ...form, image_url: url })}
-                  onUploadingChange={setUploading}
+                  onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+                  onBusyChange={setUploading}
+                  projectUrl={form.project_url}
                   folder="portfolio"
-                  label="Screenshot / cover (opsional)"
+                  label="Thumbnail (opsional)"
                 />
                 <DialogFooter>
                   <Button type="submit" disabled={saveMutation.isPending || uploading}>

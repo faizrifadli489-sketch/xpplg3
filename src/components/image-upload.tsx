@@ -10,7 +10,7 @@ const MAX_INPUT_BYTES = 15 * 1024 * 1024;
 const MAX_DIMENSION = 1024;
 
 // Perkecil + kompres di browser supaya foto HP (3-8 MB) jadi ~100-300 KB.
-async function resizeToJpeg(file: File): Promise<Blob> {
+export async function resizeToJpeg(file: Blob): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
@@ -34,6 +34,18 @@ async function resizeToJpeg(file: File): Promise<Blob> {
       0.85,
     );
   });
+}
+
+/** Kompres gambar -> JPEG, unggah ke bucket "photos", kembalikan URL publik. */
+export async function uploadImageBlob(file: Blob, folder: string): Promise<string> {
+  const blob = await resizeToJpeg(file);
+  const path = `${folder}/${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
+    contentType: "image/jpeg",
+    cacheControl: "31536000",
+  });
+  if (error) throw error;
+  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 type ImageUploadProps = {

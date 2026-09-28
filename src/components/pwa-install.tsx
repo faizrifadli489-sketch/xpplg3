@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
+import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DISMISS_KEY = "xpplg3-pwa-install-dismissed";
@@ -18,9 +18,19 @@ type BeforeInstallPromptEvent = Event & {
 export function PwaInstallButton() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(true);
+  const [iosHint, setIosHint] = useState(false);
 
   useEffect(() => {
     setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
+
+    // iOS Safari tidak punya event install; tampilkan petunjuk manual kalau belum terpasang.
+    const ua = navigator.userAgent;
+    const isIos = /iphone|ipad|ipod/i.test(ua);
+    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setIosHint(isIos && isSafari && !standalone);
 
     const handler = (event: Event) => {
       event.preventDefault();
@@ -31,7 +41,32 @@ export function PwaInstallButton() {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  if (!deferred || dismissed) return null;
+  if (dismissed) return null;
+
+  if (!deferred && iosHint) {
+    return (
+      <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg">
+        <Share className="h-5 w-5 shrink-0 text-primary" />
+        <p className="flex-1 text-sm text-foreground">
+          Pasang sebagai aplikasi: ketuk <span className="font-medium">Bagikan</span>, lalu{" "}
+          <span className="font-medium">Tambah ke Layar Utama</span>.
+        </p>
+        <button
+          type="button"
+          aria-label="Tutup"
+          className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted"
+          onClick={() => {
+            localStorage.setItem(DISMISS_KEY, "1");
+            setDismissed(true);
+          }}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  if (!deferred) return null;
 
   return (
     <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg sm:left-auto sm:right-4">

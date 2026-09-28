@@ -11,8 +11,11 @@ type ThemeContextValue = {
 // di routes/__root.tsx (RootShell), supaya keduanya baca preferensi yang sama.
 const STORAGE_KEY = "xpplg3-theme";
 
+// Default tampilan: terang. Mode gelap hanya kalau pengguna sendiri memilihnya lewat tombol tema.
+const DEFAULT_THEME: Theme = "light";
+
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: "system",
+  theme: DEFAULT_THEME,
   resolvedTheme: "light",
   setTheme: () => {},
 });
@@ -27,14 +30,14 @@ function applyTheme(resolved: "light" | "dark") {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
 
   // Baca preferensi tersimpan setelah mount (localStorage tidak ada di server).
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    setThemeState(stored ?? "system");
+    setThemeState(stored ?? DEFAULT_THEME);
     setMounted(true);
   }, []);
 

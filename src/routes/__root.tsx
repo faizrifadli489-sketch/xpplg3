@@ -131,7 +131,7 @@ function RootShell({ children }: { children: ReactNode }) {
         {/* Kunci "xpplg3-theme" ini harus sama persis dengan hooks/use-theme.tsx */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("xpplg3-theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("xpplg3-theme");var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();`,
           }}
         />
         <HeadContent />

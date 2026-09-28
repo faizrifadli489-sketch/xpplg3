@@ -328,7 +328,45 @@
   }
 }
 
+/* ---------- Loading thumbnail: kilau bergerak + garis pemindai ---------- */
+.thumb-shimmer {
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in oklab, var(--primary) 18%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: thumb-shimmer 1.6s ease-in-out infinite;
+}
+.thumb-scan {
+  animation: thumb-scan 2.2s ease-in-out infinite;
+}
+@keyframes thumb-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes thumb-scan {
+  0%,
+  100% {
+    top: 8%;
+    opacity: 0.2;
+  }
+  50% {
+    top: 88%;
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .thumb-shimmer,
+  .thumb-scan {
+    animation: none !important;
+  }
   .reveal {
     opacity: 1 !important;
     animation: none !important;
