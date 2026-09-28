@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { clearOfflineData } from "@/lib/register-sw";
 import { useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -35,14 +36,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getUser().then(({ data, error }) => {
+    (async () => {
+      const { data, error } = await supabase.auth.getUser();
+      let current = error ? null : data.user;
+      // Offline: tetap anggap login memakai sesi yang tersimpan di perangkat.
+      if (!current && typeof navigator !== "undefined" && !navigator.onLine) {
+        const { data: local } = await supabase.auth.getSession();
+        current = local.session?.user ?? null;
+      }
       if (mounted) {
-        setUser(error ? null : data.user);
+        setUser(current);
         setIsLoading(false);
       }
-    });
+    })();
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") void clearOfflineData();
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         setUser(session?.user ?? null);
         router.invalidate();

@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install";
+import { OfflineBanner } from "@/components/offline-banner";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -156,6 +157,7 @@ function RootComponent() {
       <ThemeProvider>
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
+            <OfflineBanner />
             <Header />
             <main className="flex-1">
               <Outlet />
