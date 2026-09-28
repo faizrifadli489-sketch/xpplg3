@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const TimeSchema = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Format jam tidak valid");
-const DaySchema = z.number().int().min(1).max(6);
+const DaySchema = z.number().int().min(1).max(5);
 
 const ScheduleSchema = z.object({
   day_of_week: DaySchema,

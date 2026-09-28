@@ -80,9 +80,58 @@ export const listStudentAccounts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
 
-    const { data, error } = await context.supabase.from("student_accounts").select("student_id, username");
+    const { data, error } = await context.supabase
+      .from("student_accounts")
+      .select("student_id, user_id, username");
     if (error) throw new Error(error.message);
-    return data ?? [];
+
+    const userIds = (data ?? []).map((a) => a.user_id);
+    const rolesByUser = new Map<string, ("bendahara" | "sekretaris")[]>();
+    if (userIds.length > 0) {
+      const { data: roleRows, error: roleError } = await context.supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds)
+        .in("role", ["bendahara", "sekretaris"]);
+      if (roleError) throw new Error(roleError.message);
+
+      for (const r of roleRows ?? []) {
+        const role = r.role as "bendahara" | "sekretaris";
+        const list = rolesByUser.get(r.user_id) ?? [];
+        list.push(role);
+        rolesByUser.set(r.user_id, list);
+      }
+    }
+
+    return (data ?? []).map((a) => ({ ...a, roles: rolesByUser.get(a.user_id) ?? [] }));
+  });
+
+const AssignableRole = z.enum(["bendahara", "sekretaris"]);
+
+// Admin memberi/mencabut role bendahara atau sekretaris untuk sebuah akun siswa.
+// Role "admin" sengaja tidak bisa diberikan lewat sini (hanya lewat setup awal).
+export const setAccountRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({ user_id: z.string().uuid(), role: AssignableRole, enabled: z.boolean() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    if (data.enabled) {
+      const { error } = await context.supabase
+        .from("user_roles")
+        .upsert({ user_id: data.user_id, role: data.role }, { onConflict: "user_id,role", ignoreDuplicates: true });
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await context.supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.user_id)
+        .eq("role", data.role);
+      if (error) throw new Error(error.message);
+    }
+    return { success: true };
   });
 
 export const createStudentAccount = createServerFn({ method: "POST" })

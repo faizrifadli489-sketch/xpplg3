@@ -60,7 +60,11 @@ function KasPage() {
                         <p className="font-medium">{due.title}</p>
                         <p className="text-sm text-muted-foreground">
                           {formatRupiah(due.amount)}
-                          {due.due_date ? `, batas ${formatDateId(due.due_date)}` : ""}
+                          {due.due_date
+                            ? due.is_daily
+                              ? `, tanggal ${formatDateId(due.due_date)}`
+                              : `, batas ${formatDateId(due.due_date)}`
+                            : ""}
                         </p>
                         {due.paid && due.paid_at && (
                           <p className="text-xs text-muted-foreground">Dibayar {formatDateId(due.paid_at)}</p>

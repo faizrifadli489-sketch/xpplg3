@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          is_daily: boolean
           title: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_daily?: boolean
           title: string
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_daily?: boolean
           title?: string
         }
         Relationships: []
@@ -269,6 +272,24 @@ export type Database = {
           created_at?: string
           id?: string
           text?: string
+        }
+        Relationships: []
+      }
+      kas_settings: {
+        Row: {
+          daily_amount: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          daily_amount?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          daily_amount?: number
+          id?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -540,7 +561,10 @@ export type Database = {
         Returns: { total_in: number; total_out: number }[]
       }
       current_student_id: { Args: never; Returns: string }
+      ensure_daily_kas: { Args: never; Returns: undefined }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_bendahara: { Args: { _user_id: string }; Returns: boolean }
+      is_sekretaris: { Args: { _user_id: string }; Returns: boolean }
       poll_results: {
         Args: { _poll_id: string }
         Returns: { option_id: string; votes: number }[]
@@ -551,7 +575,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin"
+      app_role: "admin" | "bendahara" | "sekretaris"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -679,7 +703,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin"],
+      app_role: ["admin", "bendahara", "sekretaris"],
     },
   },
 } as const

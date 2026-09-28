@@ -195,6 +195,7 @@ function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5">
+          <span className="h-2 w-2 rounded-full bg-spark" aria-hidden="true" />
           <span className="flex flex-col leading-tight">
             <span className="font-display text-base font-semibold tracking-tight text-foreground">
               X PPLG 3

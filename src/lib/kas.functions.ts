@@ -19,12 +19,18 @@ const ExpenseSchema = z.object({
 
 const IdSchema = z.object({ id: z.string().uuid() });
 
+const SettingsSchema = z.object({ daily_amount: Amount });
+
 // Untuk siswa: saldo total, status iuran MILIKMU SENDIRI, dan daftar pengeluaran.
 // Siapa yang sudah/belum bayar tidak pernah dikirim ke siswa lain.
 export const getMyCash = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const supabase = context.supabase;
+
+    // Pastikan tagihan kas harian hari ini sudah ada (auto-generate, aman dipanggil berkali-kali).
+    const { error: ensureError } = await supabase.rpc("ensure_daily_kas");
+    if (ensureError) throw new Error(ensureError.message);
 
     const { data: studentId, error: idError } = await supabase.rpc("current_student_id");
     if (idError) throw new Error(idError.message);
@@ -78,6 +84,10 @@ export const getMyCash = createServerFn({ method: "GET" })
 export const listCashDuesAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Pastikan tagihan kas harian hari ini sudah ada (auto-generate, aman dipanggil berkali-kali).
+    const { error: ensureError } = await context.supabase.rpc("ensure_daily_kas");
+    if (ensureError) throw new Error(ensureError.message);
+
     const { data, error } = await context.supabase
       .from("cash_dues")
       .select("*, cash_payments(count)")
@@ -89,8 +99,35 @@ export const listCashDuesAdmin = createServerFn({ method: "GET" })
       title: due.title,
       amount: due.amount,
       due_date: due.due_date,
+      is_daily: due.is_daily,
       paid_count: due.cash_payments?.[0]?.count ?? 0,
     }));
+  });
+
+// ---------- Pengaturan harga kas harian (admin & bendahara) ----------
+
+export const getKasSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("kas_settings")
+      .select("daily_amount")
+      .eq("id", 1)
+      .single();
+    if (error) throw new Error(error.message);
+    return { daily_amount: data.daily_amount };
+  });
+
+export const updateKasSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => SettingsSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("kas_settings")
+      .update({ daily_amount: data.daily_amount })
+      .eq("id", 1);
+    if (error) throw new Error(error.message);
+    return { success: true };
   });
 
 export const createCashDue = createServerFn({ method: "POST" })

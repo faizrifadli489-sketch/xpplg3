@@ -56,11 +56,11 @@ export function useClassData() {
   return { schedule, piket, events };
 }
 
-/** Hari sekolah yang ditampilkan "hari ini": Minggu dialihkan ke Senin. */
+/** Hari sekolah yang ditampilkan "hari ini": Minggu & Sabtu (libur) dialihkan ke Senin. */
 export function useToday() {
   const now = useNow();
   const today = now === null ? null : wibDayOfWeek(new Date(now));
-  const showDay = today === null ? null : today === 0 ? 1 : today;
+  const showDay = today === null ? null : today === 0 || today === 6 ? 1 : today;
   return { now, today, showDay };
 }
 
@@ -180,7 +180,13 @@ export function TodayPanel() {
         <div>
           <p className="font-mono text-sm text-muted-foreground">// hari ini</p>
           <h2 className="font-display text-2xl font-semibold tracking-tight">
-            {today === null ? "Memuat..." : today === 0 ? "Minggu, libur. Jadwal Senin:" : DAY_LABELS[today]}
+            {today === null
+              ? "Memuat..."
+              : today === 0
+                ? "Minggu, libur. Jadwal Senin:"
+                : today === 6
+                  ? "Sabtu, libur. Jadwal Senin:"
+                  : DAY_LABELS[today]}
           </h2>
         </div>
         <Link to="/jadwal" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">

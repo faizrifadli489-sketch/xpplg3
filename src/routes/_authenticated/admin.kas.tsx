@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -7,12 +7,14 @@ import {
   createCashExpense,
   deleteCashDue,
   deleteCashExpense,
+  getKasSettings,
   getMyCash,
   listCashDuesAdmin,
   listDuePayments,
   setCashPayment,
   updateCashDue,
   updateCashExpense,
+  updateKasSettings,
 } from "@/lib/kas.functions";
 import { listStudents } from "@/lib/students.functions";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,14 @@ export const Route = createFileRoute("/_authenticated/admin/kas")({
   component: AdminKas,
 });
 
-type DueRow = { id: string; title: string; amount: number; due_date: string | null; paid_count: number };
+type DueRow = {
+  id: string;
+  title: string;
+  amount: number;
+  due_date: string | null;
+  is_daily: boolean;
+  paid_count: number;
+};
 type ExpenseRow = { id: string; spent_on: string; description: string; amount: number };
 
 type DueForm = { title: string; amount: string; due_date: string };
@@ -52,9 +61,27 @@ function AdminKas() {
   const updateExpense = useServerFn(updateCashExpense);
   const removeExpense = useServerFn(deleteCashExpense);
 
+  const fetchSettings = useServerFn(getKasSettings);
+  const saveSettingsFn = useServerFn(updateKasSettings);
+
   const overview = useQuery({ queryKey: ["my-cash"], queryFn: () => fetchOverview() });
   const dues = useQuery({ queryKey: ["cash-dues-admin"], queryFn: () => fetchDues() });
   const students = useQuery({ queryKey: ["students"], queryFn: () => fetchStudents() });
+  const settings = useQuery({ queryKey: ["kas-settings"], queryFn: () => fetchSettings() });
+
+  const [dailyAmount, setDailyAmount] = useState("");
+  useEffect(() => {
+    if (settings.data) setDailyAmount(String(settings.data.daily_amount));
+  }, [settings.data]);
+
+  const saveSettings = useMutation({
+    mutationFn: () => saveSettingsFn({ data: { daily_amount: Number(dailyAmount) } }),
+    onSuccess: () => {
+      toast.success("Harga kas harian diperbarui.");
+      queryClient.invalidateQueries({ queryKey: ["kas-settings"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan pengaturan."),
+  });
 
   const [dueOpen, setDueOpen] = useState(false);
   const [editingDue, setEditingDue] = useState<DueRow | null>(null);
@@ -153,6 +180,38 @@ function AdminKas() {
       </div>
 
       <section>
+        <h3 className="mb-4 font-semibold">Pengaturan kas harian</h3>
+        <Card>
+          <CardContent className="flex flex-wrap items-end gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="daily-amount">Harga kas per hari (Rp)</Label>
+              <Input
+                id="daily-amount"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={dailyAmount}
+                onChange={(e) => setDailyAmount(e.target.value)}
+                className="w-40"
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={saveSettings.isPending || !dailyAmount}
+              onClick={() => saveSettings.mutate()}
+            >
+              {saveSettings.isPending ? "Menyimpan..." : "Simpan harga"}
+            </Button>
+            <p className="w-full text-sm text-muted-foreground">
+              Tagihan "Kas Harian" otomatis dibuat setiap hari dengan tanggal hari itu, memakai harga di atas. Tidak
+              perlu tambah tagihan manual tiap hari lagi.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold">Tagihan iuran</h3>
           <Button
@@ -175,10 +234,21 @@ function AdminKas() {
               <Card key={due.id}>
                 <CardContent className="flex items-center justify-between gap-4 py-4">
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{due.title}</p>
+                    <p className="truncate font-medium">
+                      {due.title}
+                      {due.is_daily && (
+                        <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-foreground">
+                          Otomatis
+                        </span>
+                      )}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {formatRupiah(due.amount)} per siswa
-                      {due.due_date ? `, batas ${formatDateId(due.due_date)}` : ""}
+                      {due.due_date
+                        ? due.is_daily
+                          ? `, tanggal ${formatDateId(due.due_date)}`
+                          : `, batas ${formatDateId(due.due_date)}`
+                        : ""}
                     </p>
                     <p className="font-mono text-xs text-muted-foreground">
                       {due.paid_count}/{totalStudents} siswa lunas

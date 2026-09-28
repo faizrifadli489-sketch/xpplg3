@@ -8,6 +8,7 @@ import {
   createStudentAccount,
   createAllStudentAccounts,
   resetStudentPassword,
+  setAccountRole,
 } from "@/lib/accounts.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,9 +81,18 @@ function AdminSiswa() {
     queryFn: () => fetchAccounts(),
   });
   const usernameById = new Map((accounts ?? []).map((a) => [a.student_id, a.username]));
+  const accountById = new Map((accounts ?? []).map((a) => [a.student_id, a]));
   const missingCount = (students ?? []).filter((s) => !usernameById.has(s.id)).length;
 
   const invalidateAccounts = () => queryClient.invalidateQueries({ queryKey: ["student-accounts"] });
+
+  const setRole = useServerFn(setAccountRole);
+  const roleMutation = useMutation({
+    mutationFn: (vars: { user_id: string; role: "bendahara" | "sekretaris"; enabled: boolean }) =>
+      setRole({ data: vars }),
+    onSuccess: invalidateAccounts,
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal mengubah role."),
+  });
 
   const createAccountMutation = useMutation({
     mutationFn: (student_id: string) => createAccount({ data: { student_id } }),
@@ -286,6 +296,32 @@ function AdminSiswa() {
                     <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                       {usernameById.has(student.id) ? "Login: " + usernameById.get(student.id) : "Belum punya akun"}
                     </p>
+                    {accountById.has(student.id) && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {(["bendahara", "sekretaris"] as const).map((role) => {
+                          const account = accountById.get(student.id)!;
+                          const active = account.roles.includes(role);
+                          return (
+                            <button
+                              key={role}
+                              type="button"
+                              disabled={roleMutation.isPending}
+                              onClick={() =>
+                                roleMutation.mutate({ user_id: account.user_id, role, enabled: !active })
+                              }
+                              className={
+                                "rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize transition-colors " +
+                                (active
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground")
+                              }
+                            >
+                              {role}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-1">
