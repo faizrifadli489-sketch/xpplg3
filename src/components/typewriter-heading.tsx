@@ -70,12 +70,21 @@ export function TypewriterHeading({ phrases, className }: { phrases: string[]; c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [list.join("|")]);
 
+  const trimmed = display.replace(/\s+$/, "");
+  const cut = trimmed.lastIndexOf(" ") + 1;
+  const head = trimmed.slice(0, cut);
+  const tail = trimmed.slice(cut);
+
   return (
     <h1 className={className}>
       <span className="sr-only">Kelas X PPLG 3</span>
       <span aria-hidden="true">
-        {display}
-        <span className={cn("caret", blink && "caret-blink")} />
+        {head}
+        {/* Kata terakhir + kursor dibungkus nowrap supaya kursor tidak jatuh sendirian ke baris baru. */}
+        <span className="whitespace-nowrap">
+          {tail}
+          <span className={cn("caret", blink && "caret-blink")} />
+        </span>
       </span>
     </h1>
   );

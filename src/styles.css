@@ -307,9 +307,10 @@
    mengetik/menghapus, berkedip saat jeda (lewat class .caret-blink) */
 .caret {
   display: inline-block;
-  width: 0.5em;
-  height: 0.9em;
-  margin-left: 0.14em;
+  width: 0.09em;
+  min-width: 3px;
+  height: 0.85em;
+  margin-left: 0.1em;
   border-radius: 1px;
   background: currentColor;
   vertical-align: -0.08em;

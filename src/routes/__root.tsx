@@ -210,7 +210,7 @@ function Header() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-5 xl:flex">
           {links.map((link) => (
             <Link
               key={link.to}
@@ -223,7 +223,7 @@ function Header() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-1 xl:flex">
           <ThemeToggle />
           {user ? (
             <>
@@ -243,7 +243,7 @@ function Header() {
         </div>
 
         <button
-          className="inline-flex h-10 w-10 items-center justify-center rounded-md md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md xl:hidden"
           onClick={() => setOpen((o) => !o)}
           aria-label="Toggle menu"
         >
@@ -252,7 +252,7 @@ function Header() {
       </div>
 
       {open && (
-        <div className="border-t border-border px-4 py-2 md:hidden">
+        <div className="border-t border-border px-4 py-2 xl:hidden">
           <nav className="flex flex-col">
             <div className="border-l-2 border-transparent px-1 py-1">
               <ThemeToggle mobile />
