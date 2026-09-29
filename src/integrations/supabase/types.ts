@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          fail_count: number
+          id: string
+          is_active: boolean
+          label: string
+          last_error: string | null
+          last_used_at: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          fail_count?: number
+          id?: string
+          is_active?: boolean
+          label: string
+          last_error?: string | null
+          last_used_at?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          fail_count?: number
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_error?: string | null
+          last_used_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_settings: {
+        Row: {
+          base_url: string
+          daily_limit: number
+          enabled: boolean
+          id: number
+          include_events: boolean
+          include_kas: boolean
+          include_piket: boolean
+          include_schedule: boolean
+          knowledge: string
+          model: string
+          system_prompt: string
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string
+          daily_limit?: number
+          enabled?: boolean
+          id?: number
+          include_events?: boolean
+          include_kas?: boolean
+          include_piket?: boolean
+          include_schedule?: boolean
+          knowledge?: string
+          model?: string
+          system_prompt?: string
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string
+          daily_limit?: number
+          enabled?: boolean
+          id?: number
+          include_events?: boolean
+          include_kas?: boolean
+          include_piket?: boolean
+          include_schedule?: boolean
+          knowledge?: string
+          model?: string
+          system_prompt?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_usage: {
+        Row: {
+          count: number
+          day: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          day: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cash_dues: {
         Row: {
           amount: number
@@ -556,6 +652,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ai_bump_usage: { Args: { _limit: number; _user_id: string }; Returns: boolean }
       cash_summary: {
         Args: never
         Returns: { total_in: number; total_out: number }[]

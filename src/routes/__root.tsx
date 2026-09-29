@@ -16,6 +16,7 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install";
 import { OfflineBanner } from "@/components/offline-banner";
+import { AiChat } from "@/components/ai-chat";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,7 @@ function RootComponent() {
           </div>
           <Toaster />
           <PwaInstallButton />
+          <AiChat />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

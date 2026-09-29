@@ -48,6 +48,7 @@ const ALL_TABS: { to: string; label: string; exact?: boolean; roles: AppRole[] }
   { to: "/admin/saran", label: "Saran", roles: ["admin"] },
   { to: "/admin/voting", label: "Voting", roles: ["admin"] },
   { to: "/admin/kas", label: "Kas", roles: ["admin", "bendahara"] },
+  { to: "/admin/ai", label: "AI", roles: ["admin"] },
   { to: "/admin/profil", label: "Profil Kelas", roles: ["admin"] },
 ];
 

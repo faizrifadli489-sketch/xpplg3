@@ -37,6 +37,7 @@ import { Route as AuthenticatedAdminPortofolioRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminVotingRouteImport } from './routes/_authenticated/admin.voting'
 import { Route as AuthenticatedAdminProfilRouteImport } from './routes/_authenticated/admin.profil'
 import { Route as AuthenticatedAdminKasRouteImport } from './routes/_authenticated/admin.kas'
+import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated/admin.ai'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -173,6 +174,11 @@ const AuthenticatedAdminKasRoute = AuthenticatedAdminKasRouteImport.update({
   path: '/kas',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminAiRoute = AuthenticatedAdminAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminPortofolioRoute = AuthenticatedAdminPortofolioRouteImport.update({
   id: '/portofolio',
   path: '/portofolio',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/admin/voting': typeof AuthenticatedAdminVotingRoute
   '/admin/profil': typeof AuthenticatedAdminProfilRoute
   '/admin/kas': typeof AuthenticatedAdminKasRoute
+  '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/siswa': typeof AuthenticatedAdminSiswaRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/admin/voting': typeof AuthenticatedAdminVotingRoute
   '/admin/profil': typeof AuthenticatedAdminProfilRoute
   '/admin/kas': typeof AuthenticatedAdminKasRoute
+  '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/siswa': typeof AuthenticatedAdminSiswaRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/voting': typeof AuthenticatedAdminVotingRoute
   '/_authenticated/admin/profil': typeof AuthenticatedAdminProfilRoute
   '/_authenticated/admin/kas': typeof AuthenticatedAdminKasRoute
+  '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRoute
   '/_authenticated/admin/siswa': typeof AuthenticatedAdminSiswaRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/admin/voting'
     | '/admin/profil'
     | '/admin/kas'
+    | '/admin/ai'
     | '/admin/siswa'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/admin/voting'
     | '/admin/profil'
     | '/admin/kas'
+    | '/admin/ai'
     | '/admin/siswa'
     | '/admin'
   id:
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/voting'
     | '/_authenticated/admin/profil'
     | '/_authenticated/admin/kas'
+    | '/_authenticated/admin/ai'
     | '/_authenticated/admin/siswa'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
@@ -538,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminKasRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/ai': {
+      id: '/_authenticated/admin/ai'
+      path: '/ai'
+      fullPath: '/admin/ai'
+      preLoaderRoute: typeof AuthenticatedAdminAiRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/blog': {
       id: '/_authenticated/admin/blog'
       path: '/blog'
@@ -576,6 +595,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminVotingRoute: typeof AuthenticatedAdminVotingRoute
   AuthenticatedAdminProfilRoute: typeof AuthenticatedAdminProfilRoute
   AuthenticatedAdminKasRoute: typeof AuthenticatedAdminKasRoute
+  AuthenticatedAdminAiRoute: typeof AuthenticatedAdminAiRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRoute
   AuthenticatedAdminOrganisasiRoute: typeof AuthenticatedAdminOrganisasiRoute
   AuthenticatedAdminPortofolioRoute: typeof AuthenticatedAdminPortofolioRoute
@@ -590,6 +610,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminVotingRoute: AuthenticatedAdminVotingRoute,
   AuthenticatedAdminProfilRoute: AuthenticatedAdminProfilRoute,
   AuthenticatedAdminKasRoute: AuthenticatedAdminKasRoute,
+  AuthenticatedAdminAiRoute: AuthenticatedAdminAiRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRoute,
   AuthenticatedAdminOrganisasiRoute: AuthenticatedAdminOrganisasiRoute,
   AuthenticatedAdminPortofolioRoute: AuthenticatedAdminPortofolioRoute,
