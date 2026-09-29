@@ -196,6 +196,39 @@ export const setCashPayment = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+// Simpan banyak perubahan pembayaran sekaligus (dipakai tombol "Selesai" di dialog pembayaran).
+export const saveCashPayments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        due_id: z.string().uuid(),
+        add: z.array(z.string().uuid()).max(500),
+        remove: z.array(z.string().uuid()).max(500),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    if (data.add.length > 0) {
+      const { error } = await context.supabase
+        .from("cash_payments")
+        .upsert(
+          data.add.map((student_id) => ({ due_id: data.due_id, student_id })),
+          { onConflict: "due_id,student_id", ignoreDuplicates: true },
+        );
+      if (error) throw new Error(error.message);
+    }
+    if (data.remove.length > 0) {
+      const { error } = await context.supabase
+        .from("cash_payments")
+        .delete()
+        .eq("due_id", data.due_id)
+        .in("student_id", data.remove);
+      if (error) throw new Error(error.message);
+    }
+    return { success: true };
+  });
+
 export const createCashExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => ExpenseSchema.parse(data))

@@ -24,7 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Plus, User, KeyRound, UserPlus, Copy } from "lucide-react";
+import { Pencil, Trash2, Plus, User, KeyRound, UserPlus, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/image-upload";
 
@@ -90,7 +90,11 @@ function AdminSiswa() {
   const roleMutation = useMutation({
     mutationFn: (vars: { user_id: string; role: "bendahara" | "sekretaris"; enabled: boolean }) =>
       setRole({ data: vars }),
-    onSuccess: invalidateAccounts,
+    // Mengembalikan promise refetch, jadi tombol tetap "loading" sampai tampilan benar-benar terbarui.
+    onSuccess: async (_res, vars) => {
+      await invalidateAccounts();
+      toast.success(`Role ${vars.role} ${vars.enabled ? "diberikan" : "dicabut"}.`);
+    },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal mengubah role."),
   });
 
@@ -301,21 +305,28 @@ function AdminSiswa() {
                         {(["bendahara", "sekretaris"] as const).map((role) => {
                           const account = accountById.get(student.id)!;
                           const active = account.roles.includes(role);
+                          const pending =
+                            roleMutation.isPending &&
+                            roleMutation.variables?.user_id === account.user_id &&
+                            roleMutation.variables?.role === role;
                           return (
                             <button
                               key={role}
                               type="button"
                               disabled={roleMutation.isPending}
+                              aria-busy={pending}
                               onClick={() =>
                                 roleMutation.mutate({ user_id: account.user_id, role, enabled: !active })
                               }
                               className={
-                                "rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize transition-colors " +
+                                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize transition-colors disabled:cursor-not-allowed " +
+                                (pending ? "opacity-100 " : "disabled:opacity-50 ") +
                                 (active
                                   ? "border-primary bg-primary text-primary-foreground"
                                   : "border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground")
                               }
                             >
+                              {pending && <Loader2 className="h-3 w-3 animate-spin" />}
                               {role}
                             </button>
                           );

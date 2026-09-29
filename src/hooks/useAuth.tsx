@@ -9,6 +9,8 @@ interface AuthContextValue {
   isLoading: boolean;
   /** true kalau user login punya role admin */
   isAdmin: boolean;
+  /** true kalau punya role admin, bendahara, atau sekretaris (boleh membuka dashboard) */
+  canAccessDashboard: boolean;
   /** id siswa kalau akun ini akun siswa, selain itu null */
   studentId: string | null;
   /** true selama role/akun siswa masih dicek setelah login */
@@ -20,6 +22,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   isLoading: true,
   isAdmin: false,
+  canAccessDashboard: false,
   studentId: null,
   roleLoading: false,
   signOut: async () => {},
@@ -30,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canAccessDashboard, setCanAccessDashboard] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [roleFor, setRoleFor] = useState<string | null>(null);
 
@@ -73,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setIsAdmin(false);
+      setCanAccessDashboard(false);
       setStudentId(null);
       setRoleFor(null);
       return;
@@ -82,12 +87,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       const [roleResult, accountResult] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("student_accounts").select("student_id").eq("user_id", userId).maybeSingle(),
       ]);
 
       if (cancelled) return;
-      setIsAdmin(!!roleResult.data);
+      const roles = (roleResult.data ?? []).map((r) => r.role as string);
+      setIsAdmin(roles.includes("admin"));
+      setCanAccessDashboard(roles.some((r) => r === "admin" || r === "bendahara" || r === "sekretaris"));
       setStudentId(accountResult.data?.student_id ?? null);
       setRoleFor(userId);
     })();
@@ -105,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin, studentId, roleLoading, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, isAdmin, canAccessDashboard, studentId, roleLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

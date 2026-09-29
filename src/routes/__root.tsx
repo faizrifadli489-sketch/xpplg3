@@ -173,7 +173,7 @@ function RootComponent() {
 }
 
 function Header() {
-  const { user, isAdmin, studentId } = useAuth();
+  const { user, canAccessDashboard, studentId } = useAuth();
   const [open, setOpen] = useState(false);
 
   const links = [
@@ -225,7 +225,7 @@ function Header() {
           <ThemeToggle />
           {user ? (
             <>
-              {isAdmin && (
+              {canAccessDashboard && (
                 <Button asChild variant="ghost" size="sm">
                   <Link to="/admin">Dashboard</Link>
                 </Button>
@@ -268,7 +268,7 @@ function Header() {
             ))}
             {user ? (
               <>
-                {isAdmin && (
+                {canAccessDashboard && (
                   <Link
                     to="/admin"
                     onClick={() => setOpen(false)}

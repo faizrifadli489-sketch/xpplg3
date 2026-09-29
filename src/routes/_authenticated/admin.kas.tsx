@@ -11,7 +11,7 @@ import {
   getMyCash,
   listCashDuesAdmin,
   listDuePayments,
-  setCashPayment,
+  saveCashPayments,
   updateCashDue,
   updateCashExpense,
   updateKasSettings,
@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, Users } from "lucide-react";
+import { Loader2, Pencil, Trash2, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateId, formatRupiah } from "@/lib/format";
 import { wibDateString } from "@/lib/time";
@@ -467,8 +467,10 @@ function AdminKas() {
       <PaymentsDialog
         due={paymentsDue}
         students={(students.data ?? []).map((s) => ({ id: s.id, full_name: s.full_name }))}
-        onClose={() => setPaymentsDue(null)}
-        onChanged={refresh}
+        onClose={() => {
+          setPaymentsDue(null);
+          refresh();
+        }}
       />
     </div>
   );
@@ -478,44 +480,79 @@ function PaymentsDialog({
   due,
   students,
   onClose,
-  onChanged,
 }: {
   due: DueRow | null;
   students: { id: string; full_name: string }[];
   onClose: () => void;
-  onChanged: () => void;
 }) {
-  const queryClient = useQueryClient();
   const fetchPayments = useServerFn(listDuePayments);
-  const toggle = useServerFn(setCashPayment);
+  const saveFn = useServerFn(saveCashPayments);
 
   const payments = useQuery({
     queryKey: ["cash-payments", due?.id],
     queryFn: () => fetchPayments({ data: { due_id: due!.id } }),
     enabled: !!due,
+    refetchOnWindowFocus: false,
   });
 
-  const mutation = useMutation({
-    mutationFn: (vars: { student_id: string; paid: boolean }) => toggle({ data: { due_id: due!.id, ...vars } }),
+  // Perubahan ditahan di sini (belum ke server) sampai tombol "Selesai" ditekan.
+  const [localPaid, setLocalPaid] = useState<Set<string>>(new Set());
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(false);
+  }, [due?.id]);
+
+  useEffect(() => {
+    if (payments.data && !ready) {
+      setLocalPaid(new Set(payments.data));
+      setReady(true);
+    }
+  }, [payments.data, ready]);
+
+  const serverPaid = new Set(payments.data ?? []);
+  const toAdd = [...localPaid].filter((id) => !serverPaid.has(id));
+  const toRemove = [...serverPaid].filter((id) => !localPaid.has(id));
+  const changeCount = toAdd.length + toRemove.length;
+
+  const save = useMutation({
+    mutationFn: () => saveFn({ data: { due_id: due!.id, add: toAdd, remove: toRemove } }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cash-payments", due?.id] });
-      onChanged();
+      toast.success(changeCount > 0 ? "Pembayaran disimpan." : "Tidak ada perubahan.");
+      onClose();
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan pembayaran."),
   });
 
-  const paid = new Set(payments.data ?? []);
+  const handleDone = () => {
+    if (save.isPending) return;
+    if (changeCount === 0) {
+      onClose();
+      return;
+    }
+    save.mutate();
+  };
+
+  const toggleStudent = (id: string, checked: boolean) => {
+    setLocalPaid((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   return (
-    <Dialog open={!!due} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={!!due} onOpenChange={(open) => !open && handleDone()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Pembayaran: {due?.title}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Nyalakan tombol di samping nama siswa yang sudah membayar {due ? formatRupiah(due.amount) : ""}.
+          Nyalakan tombol di samping nama siswa yang sudah membayar {due ? formatRupiah(due.amount) : ""}. Perubahan
+          disimpan saat menekan Selesai.
         </p>
-        {payments.isLoading ? (
+        {payments.isLoading || !ready ? (
           <Skeleton className="h-40 rounded-lg" />
         ) : (
           <div className="max-h-80 divide-y divide-border overflow-auto rounded-md border border-border">
@@ -523,17 +560,21 @@ function PaymentsDialog({
               <div key={student.id} className="flex items-center justify-between gap-3 px-3 py-2">
                 <span className="truncate text-sm">{student.full_name}</span>
                 <Switch
-                  checked={paid.has(student.id)}
-                  disabled={mutation.isPending}
-                  onCheckedChange={(checked) => mutation.mutate({ student_id: student.id, paid: checked })}
+                  checked={localPaid.has(student.id)}
+                  disabled={save.isPending}
+                  onCheckedChange={(checked) => toggleStudent(student.id, checked)}
                 />
               </div>
             ))}
           </div>
         )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Selesai
+        <DialogFooter className="items-center gap-2 sm:justify-between">
+          <span className="text-xs text-muted-foreground">
+            {changeCount > 0 ? `${changeCount} perubahan belum disimpan` : ""}
+          </span>
+          <Button type="button" disabled={save.isPending || !ready} onClick={handleDone}>
+            {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {save.isPending ? "Menyimpan..." : "Selesai"}
           </Button>
         </DialogFooter>
       </DialogContent>
