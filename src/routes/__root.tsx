@@ -183,6 +183,7 @@ function Header() {
     { to: "/jadwal", label: "Jadwal" },
     { to: "/profil", label: "Profil" },
     { to: "/siswa", label: "Siswa" },
+    { to: "/acak", label: "Acak" },
     { to: "/blog", label: "Blog" },
     { to: "/organisasi", label: "Organisasi" },
     { to: "/portofolio", label: "Portofolio" },

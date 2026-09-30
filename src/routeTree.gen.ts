@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as JadwalRouteImport } from './routes/jadwal'
+import { Route as AcakRouteImport } from './routes/acak'
 import { Route as PortofolioRouteImport } from './routes/portofolio'
 import { Route as OrganisasiRouteImport } from './routes/organisasi'
 import { Route as ProfilRouteImport } from './routes/profil'
@@ -61,6 +62,11 @@ const BlogRoute = BlogRouteImport.update({
 const JadwalRoute = JadwalRouteImport.update({
   id: '/jadwal',
   path: '/jadwal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcakRoute = AcakRouteImport.update({
+  id: '/acak',
+  path: '/acak',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortofolioRoute = PortofolioRouteImport.update({
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
   '/jadwal': typeof JadwalRoute
+  '/acak': typeof AcakRoute
   '/organisasi': typeof OrganisasiRoute
   '/portofolio': typeof PortofolioRoute
   '/profil': typeof ProfilRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/blog': typeof BlogIndexRoute
   '/jadwal': typeof JadwalRoute
+  '/acak': typeof AcakRoute
   '/organisasi': typeof OrganisasiRoute
   '/portofolio': typeof PortofolioRoute
   '/profil': typeof ProfilRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
   '/jadwal': typeof JadwalRoute
+  '/acak': typeof AcakRoute
   '/organisasi': typeof OrganisasiRoute
   '/portofolio': typeof PortofolioRoute
   '/profil': typeof ProfilRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/blog'
     | '/jadwal'
+    | '/acak'
     | '/organisasi'
     | '/portofolio'
     | '/profil'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/blog'
     | '/jadwal'
+    | '/acak'
     | '/organisasi'
     | '/portofolio'
     | '/profil'
@@ -341,6 +352,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/blog'
     | '/jadwal'
+    | '/acak'
     | '/organisasi'
     | '/portofolio'
     | '/profil'
@@ -373,6 +385,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BlogRoute: typeof BlogRouteWithChildren
   JadwalRoute: typeof JadwalRoute
+  AcakRoute: typeof AcakRoute
   OrganisasiRoute: typeof OrganisasiRoute
   PortofolioRoute: typeof PortofolioRoute
   ProfilRoute: typeof ProfilRoute
@@ -415,6 +428,13 @@ declare module '@tanstack/react-router' {
       path: '/jadwal'
       fullPath: '/jadwal'
       preLoaderRoute: typeof JadwalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acak': {
+      id: '/acak'
+      path: '/acak'
+      fullPath: '/acak'
+      preLoaderRoute: typeof AcakRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portofolio': {
@@ -658,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BlogRoute: BlogRouteWithChildren,
   JadwalRoute: JadwalRoute,
+  AcakRoute: AcakRoute,
   OrganisasiRoute: OrganisasiRoute,
   PortofolioRoute: PortofolioRoute,
   ProfilRoute: ProfilRoute,
