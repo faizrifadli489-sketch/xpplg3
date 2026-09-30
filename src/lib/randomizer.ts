@@ -25,12 +25,29 @@ export function shuffle<T>(items: readonly T[]): T[] {
   return a;
 }
 
-/** Bagi rata ke `count` kelompok; selisih anggota antar kelompok maksimal 1. */
+/**
+ * Bagi rata ke `count` kelompok (selisih anggota maksimal 1).
+ * Kelompok mana yang kebagian anggota lebih juga diacak, dan urutan nama di dalam
+ * kelompok dibiarkan sesuai urutan terambil (tidak diurutkan A-Z), supaya tidak terlihat berpola.
+ */
 export function makeGroups(people: Person[], count: number): RandomResult {
   const n = Math.max(1, Math.min(count, people.length));
-  const groups: Person[][] = Array.from({ length: n }, () => []);
-  shuffle(people).forEach((p, i) => groups[i % n].push(p));
-  groups.forEach((g) => g.sort((a, b) => a.name.localeCompare(b.name, "id")));
+  const base = Math.floor(people.length / n);
+  const extra = people.length % n;
+
+  // Pilih secara acak kelompok yang mendapat 1 anggota tambahan.
+  const sizes = Array.from({ length: n }, () => base);
+  shuffle(Array.from({ length: n }, (_, i) => i))
+    .slice(0, extra)
+    .forEach((i) => (sizes[i] += 1));
+
+  const order = shuffle(people);
+  const groups: Person[][] = [];
+  let cursor = 0;
+  for (const size of sizes) {
+    groups.push(order.slice(cursor, cursor + size));
+    cursor += size;
+  }
   return { mode: "groups", groups, total: people.length };
 }
 
