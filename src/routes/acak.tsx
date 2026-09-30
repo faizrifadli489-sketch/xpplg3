@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { Reveal } from "@/components/reveal";
 import { listStudents } from "@/lib/students.functions";
 import { formatDateId } from "@/lib/format";
 import { wibDateString } from "@/lib/time";
 import {
+  genderCounts,
   makeGroups,
   pickPeople,
   renderResultImage,
@@ -58,6 +61,9 @@ function AcakPage() {
   const [present, setPresent] = useState<Set<string> | null>(null); // null = semua ikut
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [showList, setShowList] = useState(false);
+  const [genderMix, setGenderMix] = useState(0);
+  const [autoRemove, setAutoRemove] = useState(false);
+  const [pickedIds, setPickedIds] = useState<Set<string>>(new Set());
 
   const [rolling, setRolling] = useState(false);
   const [rollName, setRollName] = useState("");
@@ -79,16 +85,27 @@ function AcakPage() {
     () =>
       (students ?? [])
         .filter((s) => !excluded.has(s.id) && (present === null || present.has(s.id)))
-        .map((s) => ({ id: s.id, name: s.full_name })),
+        .map((s) => ({
+          id: s.id,
+          name: s.full_name,
+          gender: s.gender === "L" || s.gender === "P" ? (s.gender as "L" | "P") : null,
+        })),
     [students, excluded, present],
   );
 
-  const min = mode === "groups" ? 2 : 1;
-  const max = Math.max(eligible.length, min);
-  const effective = Math.min(Math.max(count, min), max);
-  const canRun = eligible.length >= min && !rolling;
+  // Kalau "hilangkan yang sudah terpilih" aktif (mode pilih siswa), yang sudah terpilih tidak ikut lagi.
+  const pool = useMemo(
+    () => (mode === "pick" && autoRemove ? eligible.filter((p) => !pickedIds.has(p.id)) : eligible),
+    [mode, autoRemove, eligible, pickedIds],
+  );
 
-  const perGroup = mode === "groups" && eligible.length >= min ? eligible.length / effective : 0;
+  const min = mode === "groups" ? 2 : 1;
+  const max = Math.max(pool.length, min);
+  const effective = Math.min(Math.max(count, min), max);
+  const canRun = pool.length >= min && !rolling;
+  const poolGender = genderCounts(pool);
+
+  const perGroup = mode === "groups" && pool.length >= min ? pool.length / effective : 0;
   const perGroupText =
     perGroup > 0
       ? Number.isInteger(perGroup)
@@ -101,8 +118,8 @@ function AcakPage() {
   const isPresent = (id: string) => present === null || present.has(id);
 
   const togglePresent = (id: string, checked: boolean) => {
-    const base = present ?? new Set((students ?? []).map((s) => s.id));
-    const next = new Set(base);
+    const base = present ?? new Set<string>((students ?? []).map((s) => s.id));
+    const next = new Set<string>(base);
     if (checked) next.add(id);
     else next.delete(id);
     setPresentIds(next);
@@ -125,13 +142,17 @@ function AcakPage() {
   const run = () => {
     if (!canRun) return;
     setRolling(true);
-    const names = eligible.map((p) => p.name);
+    const names = pool.map((p) => p.name);
     timers.current.tick = setInterval(() => {
       setRollName(names[Math.floor(Math.random() * names.length)]);
     }, 70);
     timers.current.done = setTimeout(() => {
       clearInterval(timers.current.tick);
-      setResult(mode === "groups" ? makeGroups(eligible, effective) : pickPeople(eligible, effective));
+      const next = mode === "groups" ? makeGroups(pool, effective, genderMix) : pickPeople(pool, effective);
+      setResult(next);
+      if (next.mode === "pick" && autoRemove) {
+        setPickedIds((prev) => new Set([...prev, ...next.picked.map((p) => p.id)]));
+      }
       setResultId((n) => n + 1);
       setRolling(false);
     }, ROLL_MS);
@@ -196,7 +217,8 @@ function AcakPage() {
     }
   };
 
-  const activeCount = eligible.length;
+  const activeCount = pool.length;
+  const pickedList = eligible.filter((p) => pickedIds.has(p.id));
   const totalCount = students?.length ?? 0;
 
   return (
@@ -283,9 +305,65 @@ function AcakPage() {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {mode === "groups" ? perGroupText : `dari ${activeCount} siswa yang ikut`}
+                  {mode === "groups" ? perGroupText : `dari ${activeCount} siswa yang masih bisa dipilih`}
                 </p>
               </div>
+
+              {mode === "groups" && (
+                <GenderMixControl
+                  value={genderMix}
+                  onChange={setGenderMix}
+                  disabled={rolling}
+                  males={poolGender.l}
+                  females={poolGender.p}
+                />
+              )}
+
+              {mode === "pick" && (
+                <div className="space-y-3 rounded-lg border border-border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">Hilangkan siswa yang sudah terpilih</p>
+                      <p className="text-xs text-muted-foreground">
+                        Siswa yang sudah keluar tidak akan terpilih lagi di putaran berikutnya.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoRemove}
+                      disabled={rolling}
+                      onCheckedChange={(v) => {
+                        setAutoRemove(v);
+                        if (!v) setPickedIds(new Set());
+                      }}
+                      aria-label="Hilangkan siswa yang sudah terpilih"
+                    />
+                  </div>
+                  {autoRemove && pickedList.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">{pickedList.length} sudah terpilih</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={rolling}
+                          onClick={() => setPickedIds(new Set())}
+                        >
+                          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                          Reset
+                        </Button>
+                      </div>
+                      <div className="flex max-h-24 flex-wrap gap-1.5 overflow-auto">
+                        {pickedList.map((p) => (
+                          <span key={p.id} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            {p.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="rounded-lg border border-border">
                 <button
@@ -361,13 +439,21 @@ function AcakPage() {
 
               <Button type="button" size="lg" className="w-full" disabled={!canRun} onClick={run}>
                 {rolling ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Dices className="mr-2 h-5 w-5" />}
-                {rolling ? "Mengacak..." : result ? "Acak ulang" : "Acak sekarang"}
+                {rolling
+                  ? "Mengacak..."
+                  : result
+                    ? mode === "pick" && autoRemove
+                      ? "Pilih lagi"
+                      : "Acak ulang"
+                    : "Acak sekarang"}
               </Button>
-              {!rolling && eligible.length < min && (
+              {!rolling && pool.length < min && (
                 <p className="text-center text-sm text-destructive">
                   {mode === "groups"
                     ? "Minimal 2 siswa ikut untuk dibagi kelompok."
-                    : "Pilih minimal 1 siswa yang ikut."}
+                    : pickedList.length > 0
+                      ? "Semua siswa sudah terpilih. Tekan Reset untuk mulai dari awal."
+                      : "Pilih minimal 1 siswa yang ikut."}
                 </p>
               )}
             </CardContent>
@@ -400,7 +486,7 @@ function AcakPage() {
                   </Button>
                   <Button type="button" variant="ghost" size="sm" disabled={!canRun} onClick={run}>
                     <RotateCcw className="mr-1.5 h-4 w-4" />
-                    Acak ulang
+                    {result.mode === "pick" && autoRemove ? "Pilih lagi" : "Acak ulang"}
                   </Button>
                 </div>
               </div>
@@ -416,7 +502,11 @@ function AcakPage() {
                       >
                         <div className="flex items-center justify-between bg-primary px-4 py-2 text-primary-foreground">
                           <span className="font-semibold">Kelompok {i + 1}</span>
-                          <span className="text-xs opacity-90">{group.length} orang</span>
+                          <span className="text-xs opacity-90">
+                            {group.length} orang
+                            {genderCounts(group).hasGender &&
+                              ` · ${genderCounts(group).l} cowok · ${genderCounts(group).p} cewek`}
+                          </span>
                         </div>
                         <CardContent className="p-0">
                           <ol className="divide-y divide-border">
@@ -454,6 +544,76 @@ function AcakPage() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function mixDescription(value: number, males: number, females: number) {
+  if (males === 0 || females === 0) return "Peserta hanya satu gender, jadi pengaturan ini tidak berpengaruh.";
+  if (value === 0) return "Acak biasa: gender tidak dipertimbangkan.";
+  if (value < 50) return "Condong ke seimbang: tiap kelompok makin mendekati perbandingan cowok:cewek yang sama.";
+  if (value === 50) {
+    return `Seimbang: tiap kelompok punya perbandingan cowok:cewek yang sama (mendekati ${males}:${females}).`;
+  }
+  if (value < 100) return "Condong ke sejenis: makin banyak kelompok yang isinya satu gender.";
+  return "Sejenis: tiap kelompok hanya berisi satu gender. Jumlah anggota antar kelompok bisa berbeda.";
+}
+
+function GenderMixControl({
+  value,
+  onChange,
+  disabled,
+  males,
+  females,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  disabled: boolean;
+  males: number;
+  females: number;
+}) {
+  return (
+    <div className="space-y-3 rounded-lg border border-border p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium">Campuran gender</p>
+        <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm font-semibold">{value}%</span>
+      </div>
+      <Slider
+        value={[value]}
+        min={0}
+        max={100}
+        step={1}
+        disabled={disabled}
+        onValueChange={(v) => onChange(v[0] ?? 0)}
+        aria-label="Campuran gender"
+      />
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            [0, "Acak"],
+            [50, "Seimbang"],
+            [100, "Sejenis"],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(v)}
+            className={
+              "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+              (value === v
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground")
+            }
+          >
+            {v}% · {label}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {males} cowok · {females} cewek ikut. {mixDescription(value, males, females)}
+      </p>
     </div>
   );
 }

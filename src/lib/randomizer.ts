@@ -1,6 +1,17 @@
 // Logika acak siswa. Memakai crypto.getRandomValues supaya benar-benar adil (tanpa bias modulo).
 
-export type Person = { id: string; name: string };
+export type Gender = "L" | "P";
+export type Person = { id: string; name: string; gender: Gender | null };
+
+export function genderCounts(people: Person[]) {
+  let l = 0;
+  let p = 0;
+  for (const x of people) {
+    if (x.gender === "L") l++;
+    else if (x.gender === "P") p++;
+  }
+  return { l, p, hasGender: l + p > 0 };
+}
 
 export type RandomResult =
   | { mode: "groups"; groups: Person[][]; total: number }
@@ -25,30 +36,159 @@ export function shuffle<T>(items: readonly T[]): T[] {
   return a;
 }
 
-/**
- * Bagi rata ke `count` kelompok (selisih anggota maksimal 1).
- * Kelompok mana yang kebagian anggota lebih juga diacak, dan urutan nama di dalam
- * kelompok dibiarkan sesuai urutan terambil (tidak diurutkan A-Z), supaya tidak terlihat berpola.
- */
-export function makeGroups(people: Person[], count: number): RandomResult {
-  const n = Math.max(1, Math.min(count, people.length));
-  const base = Math.floor(people.length / n);
-  const extra = people.length % n;
+function range(n: number): number[] {
+  return Array.from({ length: n }, (_, i) => i);
+}
 
-  // Pilih secara acak kelompok yang mendapat 1 anggota tambahan.
+/** Bagi `total` ke `n` bagian yang selisihnya maksimal 1; bagian mana yang lebih besar diacak. */
+function evenSizes(total: number, n: number): number[] {
+  const base = Math.floor(total / n);
   const sizes = Array.from({ length: n }, () => base);
-  shuffle(Array.from({ length: n }, (_, i) => i))
-    .slice(0, extra)
+  shuffle(range(n))
+    .slice(0, total % n)
     .forEach((i) => (sizes[i] += 1));
+  return sizes;
+}
 
-  const order = shuffle(people);
-  const groups: Person[][] = [];
-  let cursor = 0;
-  for (const size of sizes) {
-    groups.push(order.slice(cursor, cursor + size));
-    cursor += size;
+/** Bulatkan angka desimal jadi bilangan bulat dengan jumlah tepat `target` (sisa dibagi acak). */
+function roundToTotal(values: number[], target: number): number[] {
+  const out = values.map((v) => Math.floor(v + 1e-9));
+  const order = shuffle(range(values.length)).sort((a, b) => values[b] - out[b] - (values[a] - out[a]));
+  let remaining = target - out.reduce((x, y) => x + y, 0);
+  for (let i = 0; remaining > 0; i++, remaining--) out[order[i % out.length]]++;
+  for (let i = 0; remaining < 0 && i < out.length * 4; i++) {
+    const idx = order[order.length - 1 - (i % order.length)];
+    if (out[idx] > 0) {
+      out[idx]--;
+      remaining++;
+    }
   }
-  return { mode: "groups", groups, total: people.length };
+  return out;
+}
+
+function sliceGroups(order: Person[], sizes: number[]): Person[][] {
+  let cursor = 0;
+  return sizes.map((size) => {
+    const g = order.slice(cursor, cursor + size);
+    cursor += size;
+    return g;
+  });
+}
+
+/**
+ * Bagi ke `count` kelompok (ukuran selisih maksimal 1, kecuali pada mode sejenis penuh).
+ *
+ * `genderMix` (0-100) mengatur komposisi gender per kelompok:
+ *   0   = acak biasa, gender tidak dipertimbangkan
+ *   50  = seimbang: tiap kelompok punya perbandingan cowok:cewek yang sama
+ *   100 = tiap kelompok hanya berisi satu gender
+ * Nilai di antaranya digeser secara bertahap (0-50: acak -> seimbang, 50-100: seimbang -> sejenis).
+ *
+ * Nama di dalam kelompok tidak diurutkan A-Z, dan kelompok yang kebagian anggota lebih diacak.
+ */
+export function makeGroups(people: Person[], count: number, genderMix = 0): RandomResult {
+  const n = Math.max(1, Math.min(count, people.length));
+  const mix = Math.max(0, Math.min(100, genderMix));
+  const males = people.filter((p) => p.gender === "L");
+  const females = people.filter((p) => p.gender === "P");
+  const unknown = people.filter((p) => !p.gender);
+  const M = males.length;
+  const F = females.length;
+  const K = M + F;
+
+  if (mix === 0 || n < 2 || M === 0 || F === 0 || K < n) {
+    const groups = sliceGroups(shuffle(people), evenSizes(people.length, n));
+    return { mode: "groups", groups, total: people.length };
+  }
+
+  const s0 = evenSizes(K, n);
+
+  // Tata letak acak murni (R): jumlah cewek per kelompok dari pengocokan biasa.
+  const dealt = sliceGroups(shuffle([...males, ...females]), s0);
+  const fR = dealt.map((g) => g.filter((p) => p.gender === "P").length);
+
+  // Tata letak seimbang (B): jumlah cewek per kelompok proporsional dengan ukurannya.
+  const fB = roundToTotal(
+    s0.map((sz) => (sz * F) / K),
+    F,
+  );
+
+  let sizes = s0;
+  let fem: number[];
+
+  if (mix <= 50) {
+    const t = mix / 50;
+    fem = roundToTotal(
+      fR.map((v, g) => (1 - t) * v + t * fB[g]),
+      F,
+    );
+  } else {
+    const t = (mix - 50) / 50;
+
+    // Tata letak sejenis (H): sebagian kelompok khusus cowok, sisanya khusus cewek.
+    let best: number[] = [];
+    let bestDiff = Infinity;
+    for (let km = Math.max(1, n - F); km <= Math.min(M, n - 1); km++) {
+      const diff = Math.abs(M / km - F / (n - km));
+      if (diff < bestDiff - 1e-9) {
+        bestDiff = diff;
+        best = [km];
+      } else if (Math.abs(diff - bestDiff) < 1e-9) best.push(km);
+    }
+    const km = best[randInt(best.length)];
+    const kf = n - km;
+    const femaleSizes = evenSizes(F, kf);
+    const maleSizes = evenSizes(M, km);
+
+    // Kelompok yang di tata letak seimbang paling banyak ceweknya dijadikan kelompok cewek (agar peralihan halus).
+    const idx = shuffle(range(n)).sort((a, b) => fB[b] / s0[b] - fB[a] / s0[a]);
+    const sH = Array.from({ length: n }, () => 0);
+    const fH = Array.from({ length: n }, () => 0);
+    idx.forEach((g, i) => {
+      if (i < kf) {
+        sH[g] = femaleSizes[i];
+        fH[g] = femaleSizes[i];
+      } else {
+        sH[g] = maleSizes[i - kf];
+      }
+    });
+
+    sizes = roundToTotal(
+      s0.map((v, g) => (1 - t) * v + t * sH[g]),
+      K,
+    );
+    fem = roundToTotal(
+      fB.map((v, g) => (1 - t) * v + t * fH[g]),
+      F,
+    );
+  }
+
+  // Pastikan jumlah cewek tidak melebihi ukuran kelompok (efek pembulatan).
+  for (let g = 0; g < n; g++) {
+    while (fem[g] > sizes[g]) {
+      const h = shuffle(range(n)).find((x) => fem[x] < sizes[x]);
+      if (h === undefined) break;
+      fem[g]--;
+      fem[h]++;
+    }
+  }
+
+  const femaleQueue = shuffle(females);
+  const maleQueue = shuffle(males);
+  const groups = sizes.map((size, g) => {
+    const fs = femaleQueue.splice(0, fem[g]);
+    const ms = maleQueue.splice(0, Math.max(0, size - fem[g]));
+    return [...fs, ...ms];
+  });
+
+  // Siswa tanpa data gender ditaruh di kelompok yang paling sedikit anggotanya.
+  for (const u of shuffle(unknown)) {
+    const smallest = Math.min(...groups.map((g) => g.length));
+    const candidates = range(n).filter((g) => groups[g].length === smallest);
+    groups[candidates[randInt(candidates.length)]].push(u);
+  }
+
+  return { mode: "groups", groups: groups.map((g) => shuffle(g)), total: people.length };
 }
 
 /** Ambil `count` siswa secara acak; urutan hasil = urutan terpilih. */
@@ -61,7 +201,10 @@ export function resultToText(result: RandomResult, dateLabel: string): string {
   if (result.mode === "groups") {
     const lines = [`Pembagian Kelompok X PPLG 3 (${dateLabel})`, ""];
     result.groups.forEach((g, i) => {
-      lines.push(`Kelompok ${i + 1} (${g.length} orang)`);
+      const gc = genderCounts(g);
+      lines.push(
+        `Kelompok ${i + 1} (${g.length} orang${gc.hasGender ? `: ${gc.l} cowok, ${gc.p} cewek` : ""})`,
+      );
       g.forEach((p, j) => lines.push(`${j + 1}. ${p.name}`));
       lines.push("");
     });
@@ -107,7 +250,13 @@ export function renderResultImage(result: RandomResult, dateLabel: string): Prom
 
   const cards: { title: string; names: string[] }[] =
     result.mode === "groups"
-      ? result.groups.map((g, i) => ({ title: `Kelompok ${i + 1} · ${g.length} orang`, names: g.map((p) => p.name) }))
+      ? result.groups.map((g, i) => {
+          const gc = genderCounts(g);
+          return {
+            title: `Kelompok ${i + 1} · ${g.length} orang${gc.hasGender ? ` · ${gc.l}L ${gc.p}P` : ""}`,
+            names: g.map((p) => p.name),
+          };
+        })
       : [{ title: `${result.picked.length} siswa terpilih`, names: result.picked.map((p) => p.name) }];
 
   const cols = result.mode === "groups" ? 2 : 1;
