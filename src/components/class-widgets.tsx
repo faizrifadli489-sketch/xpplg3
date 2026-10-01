@@ -1,3 +1,4 @@
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -6,6 +7,8 @@ import { listEvents, listPiket, listSchedule } from "@/lib/class.functions";
 import {
   CATEGORY_LABELS,
   DAY_LABELS,
+  eventEndMs,
+  eventStartMs,
   formatEventDate,
   formatTime,
   getCountdown,
@@ -16,6 +19,7 @@ import {
 } from "@/lib/time";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCountdownMode, type CountdownMode } from "@/lib/countdown-mode";
 
 export type ScheduleItem = {
   id: string;
@@ -112,25 +116,131 @@ const TONE_CLASSES: Record<CountdownInfo["tone"], string> = {
   later: "bg-muted text-muted-foreground",
 };
 
+const DAY_MS = 86_400_000;
+
+function pad(n: number, width: number) {
+  return String(n).padStart(width, "0");
+}
+
+/** Hitung mundur berjalan langsung: hari : jam : menit : detik : milidetik. */
+function MsCountdown({ event, label }: { event: EventItem; label: string }) {
+  const start = useMemo(() => eventStartMs(event), [event]);
+  const end = useMemo(() => eventEndMs(event), [event]);
+  const [now, setNow] = useState<number | null>(null);
+
+  // Hanya komponen kecil ini yang dirender ulang tiap frame, bukan seluruh halaman.
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    tick();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const id = setInterval(tick, 1000); // pengguna yang mengurangi gerakan: cukup tiap detik
+      return () => clearInterval(id);
+    }
+    let raf = 0;
+    const loop = () => {
+      tick();
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const left = now === null ? null : start - now;
+
+  if (left !== null && left <= 0) {
+    const running = now! < end;
+    return (
+      <div className={`mt-3 rounded-md px-3 py-2 text-center text-sm font-semibold ${TONE_CLASSES[running ? "now" : "later"]}`}>
+        {running ? (event.event_time ? "Sedang berlangsung" : "Hari ini") : "Selesai"}
+      </div>
+    );
+  }
+
+  const tone: CountdownInfo["tone"] = left === null ? "later" : left <= DAY_MS ? "urgent" : left <= 7 * DAY_MS ? "soon" : "later";
+  const total = left ?? 0;
+  const units: [string, string][] =
+    left === null
+      ? [["--", "hari"], ["--", "jam"], ["--", "menit"], ["--", "detik"], ["---", "ms"]]
+      : [
+          [pad(Math.floor(total / DAY_MS), 2), "hari"],
+          [pad(Math.floor(total / 3_600_000) % 24, 2), "jam"],
+          [pad(Math.floor(total / 60_000) % 60, 2), "menit"],
+          [pad(Math.floor(total / 1000) % 60, 2), "detik"],
+          [pad(total % 1000, 3), "ms"],
+        ];
+
+  return (
+    <div role="timer" className={`mt-3 rounded-md px-3 py-2 ${TONE_CLASSES[tone]}`}>
+      <span className="sr-only">{label}</span>
+      <div aria-hidden="true" className="flex items-end justify-center gap-1 font-mono tabular-nums">
+        {units.map(([value, unit], i) => (
+          <Fragment key={unit}>
+            {i > 0 && <span className="pb-4 text-lg opacity-60">:</span>}
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-semibold leading-none sm:text-2xl">{value}</span>
+              <span className="mt-1 text-[10px] uppercase tracking-wider opacity-70">{unit}</span>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Pilihan tampilan countdown: per hari atau live sampai milidetik. */
+function CountdownModeToggle() {
+  const [mode, setMode] = useCountdownMode();
+  const options: [CountdownMode, string][] = [
+    ["day", "Per hari"],
+    ["ms", "Live (ms)"],
+  ];
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <span className="text-xs text-muted-foreground">Tampilan</span>
+      <div className="inline-flex rounded-md bg-muted p-0.5" role="group" aria-label="Mode countdown">
+        {options.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={mode === value}
+            onClick={() => setMode(value)}
+            className={
+              "rounded px-2.5 py-1 text-xs font-medium transition-colors " +
+              (mode === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EventCard({ event, now }: { event: EventItem; now: number | null }) {
+  const [mode] = useCountdownMode();
   const countdown = event.show_countdown && now !== null ? getCountdown(event, now) : null;
+  const live = countdown !== null && mode === "ms";
 
   return (
     <Card className="shadow-none">
-      <CardContent className="flex items-start justify-between gap-4 py-4">
-        <div className="min-w-0">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-            {CATEGORY_LABELS[event.category] ?? event.category}
-          </p>
-          <p className="mt-1 font-medium text-foreground">{event.title}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{formatEventDate(event)}</p>
-          {event.description && <p className="mt-2 text-sm text-foreground/80">{event.description}</p>}
+      <CardContent className="py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              {CATEGORY_LABELS[event.category] ?? event.category}
+            </p>
+            <p className="mt-1 font-medium text-foreground">{event.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{formatEventDate(event)}</p>
+            {event.description && <p className="mt-2 text-sm text-foreground/80">{event.description}</p>}
+          </div>
+          {countdown && !live && (
+            <span className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold ${TONE_CLASSES[countdown.tone]}`}>
+              {countdown.label}
+            </span>
+          )}
         </div>
-        {countdown && (
-          <span className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold ${TONE_CLASSES[countdown.tone]}`}>
-            {countdown.label}
-          </span>
-        )}
+        {live && <MsCountdown event={event} label={countdown.label} />}
       </CardContent>
     </Card>
   );
@@ -156,6 +266,7 @@ export function UpcomingEvents({
 
   return (
     <div className="space-y-3">
+      {shown.some((event) => event.show_countdown) && <CountdownModeToggle />}
       {shown.map((event) => (
         <EventCard key={event.id} event={event} now={now} />
       ))}

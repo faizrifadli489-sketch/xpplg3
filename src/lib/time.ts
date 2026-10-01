@@ -29,12 +29,12 @@ export function formatTime(value: string | null | undefined): string {
 
 export type EventLike = { event_date: string; event_time: string | null };
 
-function eventStartMs(event: EventLike): number {
+export function eventStartMs(event: EventLike): number {
   const time = event.event_time ? event.event_time.slice(0, 5) : "00:00";
   return Date.parse(`${event.event_date}T${time}:00+07:00`);
 }
 
-function eventEndMs(event: EventLike): number {
+export function eventEndMs(event: EventLike): number {
   // Acara tanpa jam dianggap berlangsung seharian, acara berjam dianggap 3 jam.
   return eventStartMs(event) + (event.event_time ? 3 : 24) * 3600 * 1000;
 }
