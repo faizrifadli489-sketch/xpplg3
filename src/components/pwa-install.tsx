@@ -1,49 +1,31 @@
 import { useEffect, useState } from "react";
 import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { installPwa, usePwaInstall } from "@/lib/pwa-install";
 
 const DISMISS_KEY = "xpplg3-pwa-install-dismissed";
 
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
 /**
- * Tombol "Pasang sebagai Aplikasi" yang muncul hanya kalau browser benar-benar
- * menawarkan instalasi (event beforeinstallprompt) dan orang belum pernah
- * menutupnya. Tidak muncul di iOS Safari (browser itu tidak mengirim event ini;
- * di sana instal lewat menu Share > Add to Home Screen).
+ * Banner "Pasang sebagai Aplikasi": muncul hanya kalau browser menawarkan instalasi
+ * (atau di iPhone Safari sebagai petunjuk manual) dan belum pernah ditutup.
+ * Tombol pasang yang selalu tersedia ada di halaman /pengaturan.
  */
 export function PwaInstallButton() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+  const pwa = usePwaInstall();
   const [dismissed, setDismissed] = useState(true);
-  const [iosHint, setIosHint] = useState(false);
 
   useEffect(() => {
     setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
-
-    // iOS Safari tidak punya event install; tampilkan petunjuk manual kalau belum terpasang.
-    const ua = navigator.userAgent;
-    const isIos = /iphone|ipad|ipod/i.test(ua);
-    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setIosHint(isIos && isSafari && !standalone);
-
-    const handler = (event: Event) => {
-      event.preventDefault();
-      setDeferred(event as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => setDeferred(null));
-    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  if (dismissed) return null;
+  const close = () => {
+    localStorage.setItem(DISMISS_KEY, "1");
+    setDismissed(true);
+  };
 
-  if (!deferred && iosHint) {
+  if (dismissed || pwa.installed) return null;
+
+  if (!pwa.canPrompt && pwa.iosSafari) {
     return (
       <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg">
         <Share className="h-5 w-5 shrink-0 text-primary" />
@@ -55,10 +37,7 @@ export function PwaInstallButton() {
           type="button"
           aria-label="Tutup"
           className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted"
-          onClick={() => {
-            localStorage.setItem(DISMISS_KEY, "1");
-            setDismissed(true);
-          }}
+          onClick={close}
         >
           <X className="h-4 w-4" />
         </button>
@@ -66,30 +45,20 @@ export function PwaInstallButton() {
     );
   }
 
-  if (!deferred) return null;
+  if (!pwa.canPrompt) return null;
 
   return (
     <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg sm:left-auto sm:right-4">
       <Download className="h-5 w-5 shrink-0 text-primary" />
       <p className="flex-1 text-sm text-foreground">Pasang situs ini sebagai aplikasi di perangkatmu.</p>
-      <Button
-        size="sm"
-        onClick={async () => {
-          await deferred.prompt();
-          await deferred.userChoice;
-          setDeferred(null);
-        }}
-      >
+      <Button size="sm" onClick={() => void installPwa()}>
         Pasang
       </Button>
       <button
         type="button"
         aria-label="Tutup"
         className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted"
-        onClick={() => {
-          localStorage.setItem(DISMISS_KEY, "1");
-          setDismissed(true);
-        }}
+        onClick={close}
       >
         <X className="h-4 w-4" />
       </button>

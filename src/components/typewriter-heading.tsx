@@ -21,7 +21,12 @@ export function TypewriterHeading({ phrases, className }: { phrases: string[]; c
 
   useEffect(() => {
     if (list.length < 2) return;
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (
+      typeof window !== "undefined" &&
+      (window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+        document.documentElement.classList.contains("reduce-motion"))
+    )
+      return;
 
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout>;

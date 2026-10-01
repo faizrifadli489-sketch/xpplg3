@@ -378,6 +378,239 @@
   }
 }
 
+
+/* =====================================================================
+   Gaya tampilan pilihan pengunjung (Pengaturan > Gaya tampilan).
+   Diaktifkan lewat atribut <html data-style="brutal|glass">. Tanpa atribut = gaya bawaan.
+   Aturan di luar @layer sengaja menang atas utility Tailwind.
+   ===================================================================== */
+
+/* ---------- Neo-brutalism ---------- */
+html[data-style="brutal"] {
+  --brutal-ink: #111111;
+  --radius: 0px;
+  --background: #fff4cc;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --secondary: #ffe58a;
+  --secondary-foreground: #111111;
+  --muted: #ffefb8;
+  --muted-foreground: #3f3f3f;
+  --accent: #ffd84d;
+  --accent-foreground: #111111;
+  --border: #111111;
+  --input: #111111;
+  --ring: #111111;
+}
+html.dark[data-style="brutal"] {
+  --brutal-ink: #f5f0dc;
+  --background: #15130d;
+  --foreground: #fff7dc;
+  --card: #221f16;
+  --card-foreground: #fff7dc;
+  --popover: #221f16;
+  --popover-foreground: #fff7dc;
+  --secondary: #3a3320;
+  --secondary-foreground: #fff7dc;
+  --muted: #2b271a;
+  --muted-foreground: #cfc8ae;
+  --accent: #ffd84d;
+  --accent-foreground: #111111;
+  --border: #f5f0dc;
+  --input: #f5f0dc;
+  --ring: #ffd84d;
+}
+html[data-style="brutal"] body {
+  background-image: radial-gradient(color-mix(in oklab, var(--brutal-ink) 16%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+html[data-style="brutal"] h1,
+html[data-style="brutal"] h2,
+html[data-style="brutal"] h3 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+html[data-style="brutal"] .border { border-width: 2px; }
+html[data-style="brutal"] .border-t { border-top-width: 2px; }
+html[data-style="brutal"] .border-b { border-bottom-width: 2px; }
+html[data-style="brutal"] .divide-y > :not(:last-child) { border-bottom-width: 2px; }
+html[data-style="brutal"] .bg-card,
+html[data-style="brutal"] .bg-popover {
+  box-shadow: 4px 4px 0 0 var(--brutal-ink);
+}
+html[data-style="brutal"] [role="dialog"],
+html[data-style="brutal"] [role="menu"] {
+  border: 2px solid var(--brutal-ink);
+  box-shadow: 6px 6px 0 0 var(--brutal-ink);
+}
+html[data-style="brutal"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-style="brutal"] textarea,
+html[data-style="brutal"] select {
+  border: 2px solid var(--brutal-ink);
+  box-shadow: 3px 3px 0 0 var(--brutal-ink);
+}
+html[data-style="brutal"] button:not([role])[class*="bg-primary"],
+html[data-style="brutal"] a[class*="bg-primary"],
+html[data-style="brutal"] button:not([role])[class*="bg-secondary"],
+html[data-style="brutal"] a[class*="bg-secondary"],
+html[data-style="brutal"] button:not([role])[class*="border-input"],
+html[data-style="brutal"] a[class*="border-input"] {
+  border: 2px solid var(--brutal-ink);
+  box-shadow: 3px 3px 0 0 var(--brutal-ink);
+  font-weight: 700;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+html[data-style="brutal"] button:not([role])[class*="bg-primary"]:hover,
+html[data-style="brutal"] a[class*="bg-primary"]:hover,
+html[data-style="brutal"] button:not([role])[class*="bg-secondary"]:hover,
+html[data-style="brutal"] button:not([role])[class*="border-input"]:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--brutal-ink);
+}
+html[data-style="brutal"] button:not([role])[class*="bg-primary"]:active,
+html[data-style="brutal"] a[class*="bg-primary"]:active,
+html[data-style="brutal"] button:not([role])[class*="bg-secondary"]:active,
+html[data-style="brutal"] button:not([role])[class*="border-input"]:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--brutal-ink);
+}
+
+/* ---------- Glassmorphism ---------- */
+html[data-style="glass"] {
+  --radius: 1rem;
+  --background: #e6f0f3;
+  --foreground: #0f1b2a;
+  --card: rgba(255, 255, 255, 0.55);
+  --card-foreground: #0f1b2a;
+  --popover: rgba(255, 255, 255, 0.9);
+  --popover-foreground: #0f1b2a;
+  --secondary: rgba(255, 255, 255, 0.5);
+  --muted: rgba(255, 255, 255, 0.5);
+  --muted-foreground: #475569;
+  --accent: rgba(18, 120, 107, 0.14);
+  --accent-foreground: #0e332d;
+  --border: rgba(71, 105, 125, 0.2);
+  --input: rgba(255, 255, 255, 0.8);
+  --glass-edge: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 8px 32px rgba(31, 60, 135, 0.14);
+}
+html.dark[data-style="glass"] {
+  --background: #0a0f1e;
+  --foreground: #e9eef8;
+  --card: rgba(255, 255, 255, 0.07);
+  --card-foreground: #e9eef8;
+  --popover: rgba(20, 26, 44, 0.92);
+  --popover-foreground: #e9eef8;
+  --secondary: rgba(255, 255, 255, 0.08);
+  --muted: rgba(255, 255, 255, 0.07);
+  --muted-foreground: #a3afc4;
+  --accent: rgba(47, 182, 163, 0.2);
+  --accent-foreground: #d9efe9;
+  --border: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.18);
+  --glass-edge: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+html[data-style="glass"] body {
+  min-height: 100vh;
+  background:
+    radial-gradient(55rem 38rem at 8% -8%, rgba(94, 220, 200, 0.75), transparent 60%),
+    radial-gradient(48rem 36rem at 100% 8%, rgba(255, 170, 140, 0.65), transparent 58%),
+    radial-gradient(52rem 40rem at 45% 112%, rgba(150, 165, 255, 0.7), transparent 58%),
+    var(--background);
+  background-attachment: fixed;
+}
+html.dark[data-style="glass"] body {
+  background:
+    radial-gradient(55rem 38rem at 8% -8%, rgba(20, 150, 135, 0.5), transparent 60%),
+    radial-gradient(48rem 36rem at 100% 8%, rgba(150, 70, 120, 0.4), transparent 58%),
+    radial-gradient(52rem 40rem at 45% 112%, rgba(70, 85, 200, 0.45), transparent 58%),
+    var(--background);
+  background-attachment: fixed;
+}
+html[data-style="glass"] .bg-card,
+html[data-style="glass"] .bg-popover {
+  border-color: var(--glass-edge);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+}
+html[data-style="glass"] [role="dialog"],
+html[data-style="glass"] [role="menu"] {
+  background: var(--popover);
+  border-color: var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+}
+html[data-style="glass"] header.sticky {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: var(--glass-edge);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+}
+html.dark[data-style="glass"] header.sticky {
+  background: rgba(10, 15, 30, 0.45);
+}
+html[data-style="glass"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-style="glass"] textarea,
+html[data-style="glass"] select {
+  background: var(--input);
+  border-color: var(--glass-edge);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+/* Pengguna yang meminta transparansi dikurangi: kembali ke latar solid agar teks tetap jelas. */
+@media (prefers-reduced-transparency: reduce) {
+  html[data-style="glass"] {
+    --card: #ffffff;
+    --popover: #ffffff;
+    --muted: #eef2f6;
+    --secondary: #eef2f6;
+  }
+  html.dark[data-style="glass"] {
+    --card: #151b2e;
+    --popover: #151b2e;
+    --muted: #1b2236;
+    --secondary: #1b2236;
+  }
+  html[data-style="glass"] .bg-card,
+  html[data-style="glass"] .bg-popover,
+  html[data-style="glass"] header.sticky,
+  html[data-style="glass"] [role="dialog"],
+  html[data-style="glass"] [role="menu"] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Pengaturan "Kurangi animasi" (class di <html>); aturan sama dengan prefers-reduced-motion di bawah. */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+html.reduce-motion .pop-in,
+html.reduce-motion .thumb-shimmer,
+html.reduce-motion .thumb-scan {
+  animation: none !important;
+}
+html.reduce-motion .reveal {
+  opacity: 1 !important;
+  animation: none !important;
+  transform: none !important;
+}
+html.reduce-motion .caret {
+  animation: none !important;
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pop-in {
     animation: none !important;

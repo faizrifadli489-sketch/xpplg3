@@ -46,3 +46,35 @@ export async function clearOfflineData() {
     // abaikan
   }
 }
+
+const SHELL_PREFIX = "xpplg3-shell"; // berisi halaman offline & ikon, jangan dihapus
+
+/** Ringkasan data offline di perangkat ini. */
+export async function getOfflineStats(): Promise<{ files: number; bytes: number | null; swActive: boolean }> {
+  let files = 0;
+  try {
+    if (typeof caches !== "undefined") {
+      const names = (await caches.keys()).filter((n) => n.startsWith("xpplg3-") && !n.startsWith(SHELL_PREFIX));
+      for (const name of names) files += (await (await caches.open(name)).keys()).length;
+    }
+  } catch {
+    // abaikan
+  }
+  let bytes: number | null = null;
+  try {
+    const est = await navigator.storage?.estimate?.();
+    bytes = est?.usage ?? null;
+  } catch {
+    // abaikan
+  }
+  const swActive = typeof navigator !== "undefined" && "serviceWorker" in navigator && !!navigator.serviceWorker.controller;
+  return { files, bytes, swActive };
+}
+
+/** Hapus semua salinan offline (halaman, data, file, foto). Halaman fallback offline tetap disimpan. */
+export async function clearAllOfflineCaches(): Promise<number> {
+  if (typeof caches === "undefined") return 0;
+  const names = (await caches.keys()).filter((n) => n.startsWith("xpplg3-") && !n.startsWith(SHELL_PREFIX));
+  await Promise.all(names.map((n) => caches.delete(n)));
+  return names.length;
+}

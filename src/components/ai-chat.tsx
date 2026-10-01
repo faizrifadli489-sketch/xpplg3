@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Bot, Send, Trash2, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { chatWithAi, getAiStatus } from "@/lib/ai.functions";
+import { usePrefs } from "@/lib/preferences";
 
 type Msg = { role: "user" | "assistant"; content: string; error?: boolean };
 
@@ -17,6 +18,7 @@ function tidy(text: string) {
 /** Chat CS kecil di pojok kanan bawah. Hanya muncul untuk yang login, dan kalau admin menyalakan AI. */
 export function AiChat() {
   const { user } = useAuth();
+  const { aiHidden } = usePrefs();
   const statusFn = useServerFn(getAiStatus);
   const chatFn = useServerFn(chatWithAi);
 
@@ -66,13 +68,13 @@ export function AiChat() {
 
   // Kalau AI dimatikan / user logout, tutup panel dan bersihkan percakapan.
   useEffect(() => {
-    if (!user || status.data?.enabled === false) {
+    if (!user || aiHidden || status.data?.enabled === false) {
       setOpen(false);
       setMessages([]);
     }
-  }, [user, status.data?.enabled]);
+  }, [user, aiHidden, status.data?.enabled]);
 
-  if (!user || !status.data?.enabled) return null;
+  if (!user || aiHidden || !status.data?.enabled) return null;
 
   const ask = (text: string) => {
     const content = text.trim();

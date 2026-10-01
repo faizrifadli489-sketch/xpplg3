@@ -132,7 +132,10 @@ function MsCountdown({ event, label }: { event: EventItem; label: string }) {
   useEffect(() => {
     const tick = () => setNow(Date.now());
     tick();
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.classList.contains("reduce-motion")
+    ) {
       const id = setInterval(tick, 1000); // pengguna yang mengurangi gerakan: cukup tiap detik
       return () => clearInterval(id);
     }

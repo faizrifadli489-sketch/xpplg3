@@ -1,3 +1,4 @@
+import { usePrefs } from "@/lib/preferences";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,7 +34,9 @@ function JadwalPage() {
   const { now, today, showDay } = useToday();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  const activeDay = selectedDay ?? showDay ?? 1;
+  const { scheduleStart } = usePrefs();
+  const startDay = scheduleStart === "today" ? showDay : Number(scheduleStart);
+  const activeDay = selectedDay ?? startDay ?? 1;
   const isLoading = schedule.isLoading || piket.isLoading || events.isLoading;
 
   const dayEntries = ((schedule.data ?? []) as ScheduleItem[]).filter((e) => e.day_of_week === activeDay);

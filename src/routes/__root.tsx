@@ -22,7 +22,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordButton } from "@/components/change-password-button";
 import { UserMenu } from "@/components/user-menu";
-import { Menu, X } from "lucide-react";
+import { Menu, Settings, X } from "lucide-react";
 import { useState } from "react";
 
 function NotFoundComponent() {
@@ -128,12 +128,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <head>
-        {/* Kunci "xpplg3-theme" ini harus sama persis dengan hooks/use-theme.tsx */}
+        {/* Kunci "xpplg3-theme" harus sama dengan hooks/use-theme.tsx, dan "xpplg3-prefs" dengan lib/preferences.ts */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("xpplg3-theme");var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('xpplg3-theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;if(d)r.classList.add('dark');}catch(e){}try{var p=JSON.parse(localStorage.getItem('xpplg3-prefs')||'{}');if([90,112,125].indexOf(p.fontScale)>-1)document.documentElement.style.fontSize=p.fontScale+'%';if(p.reduceMotion===true)document.documentElement.classList.add('reduce-motion');if(p.uiStyle==='brutal'||p.uiStyle==='glass')document.documentElement.setAttribute('data-style',p.uiStyle);}catch(e){}})();`,
           }}
         />
         <HeadContent />
@@ -226,6 +226,11 @@ function Header() {
 
         <div className="hidden items-center gap-1 xl:flex">
           <ThemeToggle />
+          <Button asChild variant="ghost" size="icon" title="Pengaturan">
+            <Link to="/pengaturan" aria-label="Pengaturan">
+              <Settings className="h-4 w-4" />
+            </Link>
+          </Button>
           {user ? (
             <>
               {canAccessDashboard && (
@@ -269,6 +274,14 @@ function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              to="/pengaturan"
+              onClick={() => setOpen(false)}
+              className="border-l-2 border-transparent px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+              activeProps={{ className: "border-primary text-foreground" }}
+            >
+              Pengaturan
+            </Link>
             {user ? (
               <>
                 {canAccessDashboard && (
