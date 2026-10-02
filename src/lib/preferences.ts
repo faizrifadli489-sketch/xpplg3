@@ -8,7 +8,7 @@ import { useSyncExternalStore } from "react";
 export const FONT_SCALES = [90, 100, 112, 125] as const;
 export type FontScale = (typeof FONT_SCALES)[number];
 export type ScheduleStart = "today" | "1" | "2" | "3" | "4" | "5";
-export type UiStyle = "default" | "brutal" | "glass";
+export type UiStyle = "default" | "brutal" | "glass" | "neu" | "cyber" | "retro";
 
 export type Prefs = {
   uiStyle: UiStyle;
@@ -28,7 +28,7 @@ export const DEFAULT_PREFS: Prefs = {
 
 const KEY = "xpplg3-prefs";
 const START_VALUES: ScheduleStart[] = ["today", "1", "2", "3", "4", "5"];
-const STYLE_VALUES: UiStyle[] = ["default", "brutal", "glass"];
+const STYLE_VALUES: UiStyle[] = ["default", "brutal", "glass", "neu", "cyber", "retro"];
 
 const listeners = new Set<() => void>();
 let prefs: Prefs = DEFAULT_PREFS;

@@ -587,6 +587,229 @@ html[data-style="glass"] select {
   }
 }
 
+
+/* ---------- Neumorphism (soft UI) ---------- */
+html[data-style="neu"] {
+  --radius: 1.25rem;
+  --neu-light: #ffffff;
+  --neu-dark: #a3b1c6;
+  --background: #e0e5ec;
+  --foreground: #2d3748;
+  --card: #e0e5ec;
+  --card-foreground: #2d3748;
+  --popover: #e0e5ec;
+  --popover-foreground: #2d3748;
+  --secondary: #e0e5ec;
+  --muted: #d8dee7;
+  --muted-foreground: #5a6678;
+  --accent: rgba(18, 120, 107, 0.14);
+  --accent-foreground: #0e332d;
+  --border: rgba(163, 177, 198, 0.4);
+  --input: transparent;
+}
+html.dark[data-style="neu"] {
+  --neu-light: #3a4050;
+  --neu-dark: #14171e;
+  --background: #2b2f3a;
+  --foreground: #e6e9f0;
+  --card: #2b2f3a;
+  --card-foreground: #e6e9f0;
+  --popover: #2b2f3a;
+  --popover-foreground: #e6e9f0;
+  --secondary: #2b2f3a;
+  --muted: #262a34;
+  --muted-foreground: #a0a8b8;
+  --accent: rgba(47, 182, 163, 0.2);
+  --accent-foreground: #d9efe9;
+  --border: rgba(255, 255, 255, 0.07);
+}
+html[data-style="neu"] .bg-card,
+html[data-style="neu"] .bg-popover {
+  border-color: transparent;
+  box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
+}
+html[data-style="neu"] [role="dialog"],
+html[data-style="neu"] [role="menu"] {
+  border-color: transparent;
+  box-shadow: 12px 12px 28px var(--neu-dark), -12px -12px 28px var(--neu-light);
+}
+html[data-style="neu"] header.sticky {
+  box-shadow: 0 6px 14px -8px var(--neu-dark);
+}
+html[data-style="neu"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-style="neu"] textarea,
+html[data-style="neu"] select {
+  background: var(--background);
+  border-color: transparent;
+  box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
+}
+html[data-style="neu"] button:not([role])[class*="bg-primary"],
+html[data-style="neu"] a[class*="bg-primary"],
+html[data-style="neu"] button:not([role])[class*="bg-secondary"],
+html[data-style="neu"] a[class*="bg-secondary"],
+html[data-style="neu"] button:not([role])[class*="border-input"],
+html[data-style="neu"] a[class*="border-input"] {
+  border-color: transparent;
+  box-shadow: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light);
+  transition: box-shadow 0.15s;
+}
+html[data-style="neu"] button:not([role])[class*="border-input"],
+html[data-style="neu"] button:not([role])[class*="bg-secondary"] {
+  background: var(--background);
+}
+html[data-style="neu"] button:not([role])[class*="bg-primary"]:active,
+html[data-style="neu"] a[class*="bg-primary"]:active,
+html[data-style="neu"] button:not([role])[class*="bg-secondary"]:active,
+html[data-style="neu"] button:not([role])[class*="border-input"]:active {
+  box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+}
+
+/* ---------- Cyberpunk (neon, selalu gelap) ---------- */
+html[data-style="cyber"] {
+  color-scheme: dark;
+  --radius: 0.125rem;
+  --background: #0a0612;
+  --foreground: #e6f6ff;
+  --card: #120a22;
+  --card-foreground: #e6f6ff;
+  --popover: #120a22;
+  --popover-foreground: #e6f6ff;
+  --primary: #00f0ff;
+  --primary-foreground: #001418;
+  --secondary: #1b1033;
+  --secondary-foreground: #e6f6ff;
+  --muted: #170d2b;
+  --muted-foreground: #a99bd1;
+  --accent: #ff2bd6;
+  --accent-foreground: #ffffff;
+  --spark: #fcee0a;
+  --spark-foreground: #1a1400;
+  --destructive: #ff3b5c;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 240, 255, 0.28);
+  --input: rgba(255, 43, 214, 0.45);
+  --ring: #00f0ff;
+}
+html[data-style="cyber"] body {
+  background:
+    linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    radial-gradient(50rem 30rem at 85% -10%, rgba(255, 43, 214, 0.18), transparent 60%),
+    radial-gradient(50rem 30rem at 0% 110%, rgba(0, 240, 255, 0.14), transparent 60%),
+    var(--background);
+  background-attachment: fixed;
+}
+html[data-style="cyber"] h1,
+html[data-style="cyber"] h2,
+html[data-style="cyber"] h3 {
+  text-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
+}
+html[data-style="cyber"] .bg-card,
+html[data-style="cyber"] .bg-popover,
+html[data-style="cyber"] [role="dialog"],
+html[data-style="cyber"] [role="menu"] {
+  border-color: rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.12), 0 0 22px rgba(0, 240, 255, 0.1);
+}
+html[data-style="cyber"] button:not([role])[class*="bg-primary"],
+html[data-style="cyber"] a[class*="bg-primary"] {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.55);
+}
+html[data-style="cyber"] button:not([role])[class*="bg-spark"],
+html[data-style="cyber"] a[class*="bg-spark"] {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 14px rgba(252, 238, 10, 0.5);
+}
+html[data-style="cyber"] button:not([role])[class*="bg-primary"]:hover,
+html[data-style="cyber"] a[class*="bg-primary"]:hover {
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.85);
+}
+html[data-style="cyber"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-style="cyber"] textarea,
+html[data-style="cyber"] select {
+  background: rgba(10, 6, 18, 0.8);
+  border-color: var(--input);
+}
+html[data-style="cyber"] section.bg-primary {
+  --primary-foreground: #e6f6ff;
+  background: linear-gradient(135deg, #1d0b40 0%, #0a0612 60%, #001f2b 100%);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+}
+
+/* ---------- Retro terminal (hijau fosfor, selalu gelap) ---------- */
+html[data-style="retro"] {
+  color-scheme: dark;
+  --radius: 0px;
+  --background: #030a05;
+  --foreground: #aef7bd;
+  --card: #07130a;
+  --card-foreground: #aef7bd;
+  --popover: #07130a;
+  --popover-foreground: #aef7bd;
+  --primary: #33ff66;
+  --primary-foreground: #02140a;
+  --secondary: #0d2414;
+  --secondary-foreground: #aef7bd;
+  --muted: #0a1c10;
+  --muted-foreground: #6fbf86;
+  --accent: #33ff66;
+  --accent-foreground: #02140a;
+  --spark: #ffb000;
+  --spark-foreground: #1a1000;
+  --destructive: #ff5555;
+  --destructive-foreground: #1a0505;
+  --border: #1f7a3a;
+  --input: #1f7a3a;
+  --ring: #33ff66;
+}
+html[data-style="retro"] body,
+html[data-style="retro"] body * {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+html[data-style="retro"] ::selection {
+  background: #33ff66;
+  color: #02140a;
+}
+html[data-style="retro"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent 2px, rgba(0, 0, 0, 0.14) 3px);
+}
+html[data-style="retro"] h1,
+html[data-style="retro"] h2,
+html[data-style="retro"] h3 {
+  text-shadow: 0 0 10px rgba(51, 255, 102, 0.5);
+}
+html[data-style="retro"] .bg-card,
+html[data-style="retro"] .bg-popover {
+  box-shadow: inset 0 0 0 1px rgba(51, 255, 102, 0.08);
+}
+html[data-style="retro"] button:not([role])[class*="bg-primary"],
+html[data-style="retro"] a[class*="bg-primary"] {
+  border: 1px solid #33ff66;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 10px rgba(51, 255, 102, 0.4);
+}
+html[data-style="retro"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html[data-style="retro"] textarea,
+html[data-style="retro"] select {
+  background: #030a05;
+  border-color: var(--input);
+}
+html[data-style="retro"] section.bg-primary {
+  --primary-foreground: #aef7bd;
+  background: #04100a;
+  border-bottom: 1px solid #1f7a3a;
+}
+
 /* Pengaturan "Kurangi animasi" (class di <html>); aturan sama dengan prefers-reduced-motion di bawah. */
 html.reduce-motion *,
 html.reduce-motion *::before,

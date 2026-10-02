@@ -48,12 +48,23 @@ const STYLE_OPTIONS: { value: UiStyle; label: string; desc: string }[] = [
   { value: "default", label: "Bawaan", desc: "Bersih dan sederhana." },
   { value: "brutal", label: "Neo-brutalism", desc: "Border tebal, bayangan keras, warna mencolok." },
   { value: "glass", label: "Glassmorphism", desc: "Kaca buram transparan dengan latar gradasi." },
+  { value: "neu", label: "Neumorphism", desc: "Soft UI: elemen timbul dan cekung yang lembut." },
+  { value: "cyber", label: "Cyberpunk", desc: "Neon cyan dan magenta. Selalu tampil gelap." },
+  { value: "retro", label: "Retro terminal", desc: "Hijau fosfor ala komputer lama. Selalu tampil gelap." },
 ];
 
 /** Miniatur gaya; warna ditulis langsung supaya tidak ikut berubah saat gaya aktif berganti. */
 function StylePreview({ kind }: { kind: UiStyle }) {
   const wrap: Record<UiStyle, CSSProperties> = {
     default: { background: "#f5f6fa" },
+    neu: { background: "#e0e5ec" },
+    cyber: {
+      background: "#0a0612",
+      backgroundImage:
+        "linear-gradient(rgba(0,240,255,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,.12) 1px, transparent 1px)",
+      backgroundSize: "12px 12px",
+    },
+    retro: { background: "#030a05" },
     brutal: { background: "#fff4cc", backgroundImage: "radial-gradient(rgba(17,17,17,.2) 1px, transparent 1px)", backgroundSize: "10px 10px" },
     glass: {
       background:
@@ -63,6 +74,9 @@ function StylePreview({ kind }: { kind: UiStyle }) {
   const card: Record<UiStyle, CSSProperties> = {
     default: { background: "#fff", border: "1px solid #dee1e8", borderRadius: 8 },
     brutal: { background: "#fff", border: "2px solid #111", borderRadius: 0, boxShadow: "3px 3px 0 #111" },
+    neu: { background: "#e0e5ec", borderRadius: 14, boxShadow: "6px 6px 12px #a3b1c6, -6px -6px 12px #fff" },
+    cyber: { background: "#120a22", border: "1px solid rgba(0,240,255,.6)", borderRadius: 2, boxShadow: "0 0 14px rgba(0,240,255,.35)" },
+    retro: { background: "#07130a", border: "1px solid #1f7a3a", borderRadius: 0 },
     glass: {
       background: "rgba(255,255,255,.5)",
       border: "1px solid rgba(255,255,255,.8)",
@@ -75,11 +89,22 @@ function StylePreview({ kind }: { kind: UiStyle }) {
     default: { background: "#12786b", borderRadius: 4 },
     brutal: { background: "#12786b", border: "2px solid #111", borderRadius: 0 },
     glass: { background: "rgba(18,120,107,.85)", borderRadius: 8 },
+    neu: { background: "#12786b", borderRadius: 8, boxShadow: "3px 3px 6px #a3b1c6, -3px -3px 6px #fff" },
+    cyber: { background: "#00f0ff", borderRadius: 1, boxShadow: "0 0 10px rgba(0,240,255,.8)" },
+    retro: { background: "#33ff66", borderRadius: 0 },
+  };
+  const line: Record<UiStyle, string> = {
+    default: "#9aa3b2",
+    brutal: "#9aa3b2",
+    glass: "#9aa3b2",
+    neu: "#9aa3b2",
+    cyber: "#ff2bd6",
+    retro: "#6fbf86",
   };
   return (
     <div aria-hidden="true" className="flex h-20 items-center justify-center overflow-hidden rounded-md" style={wrap[kind]}>
       <div className="w-24 space-y-1.5 p-2" style={card[kind]}>
-        <div className="h-1.5 w-12" style={{ background: "#9aa3b2", borderRadius: kind === "brutal" ? 0 : 3 }} />
+        <div className="h-1.5 w-12" style={{ background: line[kind], borderRadius: kind === "brutal" || kind === "retro" ? 0 : 3 }} />
         <div className="h-3.5 w-full" style={bar[kind]} />
       </div>
     </div>
@@ -208,7 +233,7 @@ function PengaturanPage() {
       <div className="space-y-8">
         <Section title="tampilan">
           <Row title="Gaya tampilan" hint="Mengubah rupa seluruh web: kartu, tombol, kolom isian, dan latar.">
-            <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="Gaya tampilan">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="group" aria-label="Gaya tampilan">
               {STYLE_OPTIONS.map((o) => (
                 <button
                   key={o.value}

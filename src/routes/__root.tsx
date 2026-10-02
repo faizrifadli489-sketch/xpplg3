@@ -133,7 +133,7 @@ function RootShell({ children }: { children: ReactNode }) {
         {/* Kunci "xpplg3-theme" harus sama dengan hooks/use-theme.tsx, dan "xpplg3-prefs" dengan lib/preferences.ts */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('xpplg3-theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;if(d)r.classList.add('dark');}catch(e){}try{var p=JSON.parse(localStorage.getItem('xpplg3-prefs')||'{}');if([90,112,125].indexOf(p.fontScale)>-1)document.documentElement.style.fontSize=p.fontScale+'%';if(p.reduceMotion===true)document.documentElement.classList.add('reduce-motion');if(p.uiStyle==='brutal'||p.uiStyle==='glass')document.documentElement.setAttribute('data-style',p.uiStyle);}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('xpplg3-theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;if(d)r.classList.add('dark');}catch(e){}try{var p=JSON.parse(localStorage.getItem('xpplg3-prefs')||'{}');if([90,112,125].indexOf(p.fontScale)>-1)document.documentElement.style.fontSize=p.fontScale+'%';if(p.reduceMotion===true)document.documentElement.classList.add('reduce-motion');if(['brutal','glass','neu','cyber','retro'].indexOf(p.uiStyle)>-1)document.documentElement.setAttribute('data-style',p.uiStyle);}catch(e){}})();`,
           }}
         />
         <HeadContent />
