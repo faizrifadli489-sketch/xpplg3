@@ -192,6 +192,9 @@ function AdminBlog() {
                 onUploadingChange={setUploading}
                 folder="blog"
                 label="Gambar sampul (opsional)"
+                cropAspects={["16:9", "4:3", "1:1", "free"]}
+                cropDefault="16:9"
+                cropMaxSize={1280}
               />
 
               <div className="space-y-2">
@@ -221,6 +224,9 @@ function AdminBlog() {
                   onUploadingChange={setGalleryUploading}
                   folder="blog"
                   label="Tambah foto ke galeri"
+                  cropAspects={["free", "orig", "16:9", "4:3", "1:1"]}
+                  cropDefault="free"
+                  cropMaxSize={1280}
                 />
               </div>
               <div className="flex items-center gap-3">

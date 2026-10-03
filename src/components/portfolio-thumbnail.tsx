@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, CheckCircle2, ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
+import { Camera, CheckCircle2, Crop, ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { ImageCropDialog } from "@/components/image-crop-dialog";
 import { uploadImageBlob } from "@/components/image-upload";
+import type { AspectKey } from "@/lib/image-crop";
 import { screenshotApiUrl } from "@/lib/screenshot";
 import { captureScreenshot } from "@/lib/screenshot.functions";
 
 const MAX_INPUT_BYTES = 15 * 1024 * 1024;
+const THUMB_ASPECTS: AspectKey[] = ["16:9", "4:3", "1:1", "free"];
 
 type Phase = "idle" | "capturing" | "uploading";
 
@@ -55,6 +58,9 @@ export function PortfolioThumbnail({
   const [progress, setProgress] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
   const [justDone, setJustDone] = useState(false);
+  // Gambar yang sedang dibuka di editor potong (dari screenshot, file, atau thumbnail lama).
+  const [cropSource, setCropSource] = useState<{ blob: Blob; fromShot: boolean } | null>(null);
+  const [loadingExisting, setLoadingExisting] = useState(false);
 
   const busy = phase !== "idle";
   const canCapture = isValidHttpUrl(projectUrl.trim());
@@ -109,11 +115,8 @@ export function PortfolioThumbnail({
       }
       if (!shot.type.startsWith("image/")) throw new Error("Hasil screenshot bukan gambar.");
 
-      setProgress(94);
-      setBusy("uploading");
-      const publicUrl = await uploadImageBlob(shot, folder);
-      finish(publicUrl);
-      toast.success("Thumbnail berhasil dibuat dari website.");
+      setProgress(0);
+      setCropSource({ blob: shot, fromShot: true });
     } catch (err) {
       setProgress(0);
       toast.error(err instanceof Error ? err.message : "Gagal mengambil screenshot.");
@@ -122,7 +125,8 @@ export function PortfolioThumbnail({
     }
   };
 
-  const handleFile = async (file: File | undefined) => {
+  const handleFile = (file: File | undefined) => {
+    if (inputRef.current) inputRef.current.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("File harus berupa gambar.");
@@ -132,17 +136,38 @@ export function PortfolioThumbnail({
       toast.error("Ukuran file maksimal 15 MB.");
       return;
     }
-    setProgress(40);
+    setCropSource({ blob: file, fromShot: false });
+  };
+
+  // Unggah hasil editor; error dilempar balik supaya dialog tetap terbuka dan bisa dicoba lagi.
+  const upload = async (blob: Blob, processed: boolean, message: string) => {
+    setProgress(55);
     setBusy("uploading");
     try {
-      finish(await uploadImageBlob(file, folder));
-      toast.success("Thumbnail berhasil diunggah.");
+      finish(await uploadImageBlob(blob, folder, processed));
+      toast.success(message);
+      setCropSource(null);
     } catch (err) {
       setProgress(0);
-      toast.error(err instanceof Error ? err.message : "Gagal mengunggah gambar.");
+      throw err;
     } finally {
       setBusy("idle");
-      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const editExisting = async () => {
+    if (!value) return;
+    setLoadingExisting(true);
+    try {
+      const res = await fetch(value);
+      if (!res.ok) throw new Error("fetch gagal");
+      const blob = await res.blob();
+      if (!blob.type.startsWith("image/")) throw new Error("bukan gambar");
+      setCropSource({ blob, fromShot: false });
+    } catch {
+      toast.error("Thumbnail ini tidak bisa dibuka untuk diedit. Buat ulang atau upload baru.");
+    } finally {
+      setLoadingExisting(false);
     }
   };
 
@@ -197,6 +222,12 @@ export function PortfolioThumbnail({
           Upload manual
         </Button>
         {value && !busy && (
+          <Button type="button" variant="outline" size="sm" disabled={loadingExisting} onClick={() => void editExisting()}>
+            {loadingExisting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Crop className="mr-1 h-4 w-4" />}
+            Potong
+          </Button>
+        )}
+        {value && !busy && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>
             <Trash2 className="mr-1 h-4 w-4 text-destructive" />
             Hapus
@@ -209,13 +240,25 @@ export function PortfolioThumbnail({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => void handleFile(e.target.files?.[0])}
+        onChange={(e) => handleFile(e.target.files?.[0])}
       />
       <p className="text-xs text-muted-foreground">
         {canCapture
-          ? "Screenshot otomatis dari link proyek, atau upload gambar sendiri."
+          ? "Screenshot otomatis dari link proyek, atau upload gambar sendiri. Hasilnya bisa dipotong dulu."
           : "Isi link proyek di atas untuk pakai screenshot otomatis, atau upload gambar sendiri."}
       </p>
+
+      <ImageCropDialog
+        file={cropSource?.blob ?? null}
+        title="Potong thumbnail"
+        aspects={THUMB_ASPECTS}
+        defaultAspect="16:9"
+        maxSize={1280}
+        allowSkip={cropSource?.fromShot === true}
+        onCancel={() => setCropSource(null)}
+        onConfirm={(blob) => upload(blob, true, cropSource?.fromShot ? "Thumbnail berhasil dibuat dari website." : "Thumbnail berhasil diunggah.")}
+        onSkip={(original) => upload(original, false, "Thumbnail berhasil dibuat dari website.")}
+      />
     </div>
   );
 }

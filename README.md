@@ -12,6 +12,7 @@ Live: <https://xpplg3.vercel.app>
 - **Profil, Siswa, Organisasi** — profil kelas, daftar siswa, struktur pengurus
 - **Blog** — pengumuman dan dokumentasi kegiatan
 - **Portofolio** — karya siswa; thumbnail bisa dibuat otomatis dari screenshot link proyek (thum.io) atau diunggah manual
+- **Editor foto** — setiap unggah foto (siswa, profil, organisasi, blog, thumbnail portofolio) dibuka di editor potong: bingkai bisa diseret/diubah ukurannya, pilihan rasio (Bebas, Asli, 1:1, 4:3, 16:9), zoom dan geser dengan jari atau scroll, putar 90°, cermin, dan luruskan miring
 - **Pengaturan** (`/pengaturan`) — preferensi per perangkat: gaya tampilan (bawaan, neo-brutalism, glassmorphism, neumorphism, cyberpunk, retro terminal), tema, ukuran teks, kurangi animasi, mode countdown (per hari atau live sampai milidetik), hari awal halaman Jadwal, hapus data offline, pasang aplikasi, dan sembunyikan tombol asisten AI
 - **Acak Siswa** (`/acak`) — bagi jadi N kelompok atau pilih N siswa. Bisa atur peserta, kecualikan siswa tetap, hilangkan siswa yang sudah terpilih, dan atur campuran gender per kelompok (0% acak, 50% seimbang, 100% sejenis). Hasil bisa disalin atau dibagikan sebagai gambar
 

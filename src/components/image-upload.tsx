@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
-import { ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { Crop, ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ImageCropDialog } from "@/components/image-crop-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import type { AspectKey } from "@/lib/image-crop";
 
 const BUCKET = "photos";
 const MAX_INPUT_BYTES = 15 * 1024 * 1024;
@@ -36,9 +38,12 @@ export async function resizeToJpeg(file: Blob): Promise<Blob> {
   });
 }
 
-/** Kompres gambar -> JPEG, unggah ke bucket "photos", kembalikan URL publik. */
-export async function uploadImageBlob(file: Blob, folder: string): Promise<string> {
-  const blob = await resizeToJpeg(file);
+/**
+ * Unggah gambar ke bucket "photos" dan kembalikan URL publik.
+ * `processed` = gambar sudah JPEG hasil editor potong, jadi tidak perlu dikompres ulang.
+ */
+export async function uploadImageBlob(file: Blob, folder: string, processed = false): Promise<string> {
+  const blob = processed ? file : await resizeToJpeg(file);
   const path = `${folder}/${crypto.randomUUID()}.jpg`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
     contentType: "image/jpeg",
@@ -54,6 +59,11 @@ type ImageUploadProps = {
   folder: string;
   label?: string;
   onUploadingChange?: (uploading: boolean) => void;
+  /** Pilihan rasio di editor potong. Bawaan: 1:1 dikunci (cocok untuk foto profil). */
+  cropAspects?: AspectKey[];
+  cropDefault?: AspectKey;
+  /** Sisi terpanjang hasil potong (px). */
+  cropMaxSize?: number;
 };
 
 export function ImageUpload({
@@ -62,16 +72,22 @@ export function ImageUpload({
   folder,
   label = "Foto",
   onUploadingChange,
+  cropAspects = ["1:1"],
+  cropDefault,
+  cropMaxSize = 800,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [source, setSource] = useState<Blob | null>(null);
+  const [loadingExisting, setLoadingExisting] = useState(false);
 
   const setBusy = (busy: boolean) => {
     setUploading(busy);
     onUploadingChange?.(busy);
   };
 
-  const handleFile = async (file: File | undefined) => {
+  const handleFile = (file: File | undefined) => {
+    if (inputRef.current) inputRef.current.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("File harus berupa gambar.");
@@ -81,25 +97,34 @@ export function ImageUpload({
       toast.error("Ukuran file maksimal 15 MB.");
       return;
     }
+    setSource(file); // buka editor potong dulu, baru diunggah
+  };
 
+  // Potong ulang foto yang sudah ada.
+  const editExisting = async () => {
+    if (!value) return;
+    setLoadingExisting(true);
+    try {
+      const res = await fetch(value);
+      if (!res.ok) throw new Error("fetch gagal");
+      const blob = await res.blob();
+      if (!blob.type.startsWith("image/")) throw new Error("bukan gambar");
+      setSource(blob);
+    } catch {
+      toast.error("Foto ini tidak bisa dibuka untuk diedit. Pilih foto baru saja.");
+    } finally {
+      setLoadingExisting(false);
+    }
+  };
+
+  const confirmCrop = async (blob: Blob) => {
     setBusy(true);
     try {
-      const blob = await resizeToJpeg(file);
-      const path = `${folder}/${crypto.randomUUID()}.jpg`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
-        contentType: "image/jpeg",
-        cacheControl: "31536000",
-      });
-      if (error) throw error;
-
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      onChange(data.publicUrl);
+      onChange(await uploadImageBlob(blob, folder, true));
       toast.success("Foto berhasil diunggah.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal mengunggah foto.");
+      setSource(null);
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   };
 
@@ -130,6 +155,12 @@ export function ImageUpload({
             {uploading ? "Mengunggah..." : value ? "Ganti foto" : "Pilih foto"}
           </Button>
           {value && !uploading && (
+            <Button type="button" variant="outline" size="sm" disabled={loadingExisting} onClick={() => void editExisting()}>
+              {loadingExisting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Crop className="mr-1 h-4 w-4" />}
+              Potong
+            </Button>
+          )}
+          {value && !uploading && (
             <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>
               <Trash2 className="mr-1 h-4 w-4 text-destructive" />
               Hapus
@@ -142,11 +173,21 @@ export function ImageUpload({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => void handleFile(e.target.files?.[0])}
+        onChange={(e) => handleFile(e.target.files?.[0])}
       />
       <p className="text-xs text-muted-foreground">
-        JPG, PNG, atau WebP. Otomatis diperkecil sebelum diunggah.
+        JPG, PNG, atau WebP. Kamu bisa memotong dan memutar foto sebelum diunggah.
       </p>
+
+      <ImageCropDialog
+        file={source}
+        title={label}
+        aspects={cropAspects}
+        defaultAspect={cropDefault}
+        maxSize={cropMaxSize}
+        onCancel={() => setSource(null)}
+        onConfirm={confirmCrop}
+      />
     </div>
   );
 }
