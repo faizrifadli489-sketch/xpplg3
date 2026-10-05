@@ -3,12 +3,13 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { deletePortfolioCode } from "@/lib/playground.functions";
+import { KEEP_FILE, baseName, buildWebDoc, hasWebEntry, languageOf, parseFiles } from "@/lib/ide-files";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/use-theme";
 import { CodePreview } from "@/components/code-preview";
+import { FileTree } from "@/components/file-tree";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Code2, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -54,8 +55,6 @@ export const Route = createFileRoute("/portofolio/$slug")({
   ),
 });
 
-type Tab = "html" | "css" | "js";
-
 function PortfolioCodePage() {
   const project = Route.useLoaderData();
   const navigate = useNavigate();
@@ -63,10 +62,18 @@ function PortfolioCodePage() {
   const { studentId, isAdmin } = useAuth();
   const { resolvedTheme } = useTheme();
   const remove = useServerFn(deletePortfolioCode);
-  const [showCode, setShowCode] = useState(false);
-  const [tab, setTab] = useState<Tab>("html");
 
-  const doc = useMemo(() => ({ html: project.html, css: project.css, js: project.js }), [project]);
+  const files = useMemo(() => parseFiles(project.files), [project.files]);
+  const visible = useMemo(() => files.filter((f) => baseName(f.path) !== KEEP_FILE), [files]);
+  const firstFile = useMemo(() => visible.find((f) => f.path === "index.html") ?? visible[0] ?? null, [visible]);
+  const isWeb = hasWebEntry(files);
+  const srcDoc = useMemo(() => (isWeb ? buildWebDoc(files, null) : ""), [files, isWeb]);
+
+  const [showCode, setShowCode] = useState(!isWeb);
+  const [activePath, setActivePath] = useState<string | null>(firstFile?.path ?? null);
+  const [selected, setSelected] = useState<string | null>(firstFile?.path ?? null);
+  const activeFile = files.find((f) => f.path === activePath) ?? null;
+
   const isOwner = (!!project.students && project.students.id === studentId) || isAdmin;
 
   const deleteMutation = useMutation({
@@ -99,7 +106,7 @@ function PortfolioCodePage() {
         <div className="flex gap-2">
           <Button asChild variant={isOwner ? "default" : "outline"}>
             <Link to="/portofolio/playground" search={{ slug: project.slug }}>
-              <Pencil className="mr-1 h-4 w-4" /> {isOwner ? "Edit" : "Remix"}
+              <Pencil className="mr-1 h-4 w-4" /> {isOwner ? "Edit" : isWeb ? "Remix" : "Buka & jalankan"}
             </Link>
           </Button>
           {isOwner && (
@@ -118,28 +125,36 @@ function PortfolioCodePage() {
         </div>
       </div>
 
-      <CodePreview doc={doc} showConsole={false} className="mt-6 h-[65dvh]" />
+      {isWeb && <CodePreview srcDoc={srcDoc} showConsole={false} className="mt-6 h-[65dvh]" />}
 
       <div className="mt-6">
-        <Button variant="outline" size="sm" onClick={() => setShowCode((s) => !s)}>
-          <Code2 className="mr-1 h-4 w-4" /> {showCode ? "Sembunyikan kode" : "Lihat kode"}
-        </Button>
+        {isWeb && (
+          <Button variant="outline" size="sm" onClick={() => setShowCode((s) => !s)}>
+            <Code2 className="mr-1 h-4 w-4" /> {showCode ? "Sembunyikan kode" : "Lihat kode"}
+          </Button>
+        )}
 
         {showCode && (
-          <div className="mt-3 space-y-2">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-              <TabsList>
-                {(["html", "css", "js"] as Tab[]).map((t) => (
-                  <TabsTrigger key={t} value={t} className="font-mono text-xs">
-                    {t.toUpperCase()}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            <div className="h-[50dvh]">
-              <Suspense fallback={<Skeleton className="h-full w-full" />}>
-                <CodeEditor language={tab} value={project[tab]} dark={resolvedTheme === "dark"} readOnly />
-              </Suspense>
+          <div className="mt-3 grid h-[60dvh] gap-3 sm:grid-cols-[200px_minmax(0,1fr)]">
+            <div className="max-h-48 min-h-0 overflow-hidden rounded-md border sm:max-h-none">
+              <FileTree files={files} activePath={activePath} selected={selected} onSelect={setSelected} onOpen={setActivePath} />
+            </div>
+            <div className="min-h-0">
+              {activeFile ? (
+                <Suspense fallback={<Skeleton className="h-full w-full" />}>
+                  <CodeEditor
+                    key={activeFile.path}
+                    language={languageOf(activeFile.path)}
+                    value={activeFile.content}
+                    dark={resolvedTheme === "dark"}
+                    readOnly
+                  />
+                </Suspense>
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                  Pilih file di sebelah kiri.
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -292,7 +292,7 @@ function PortofolioPage() {
                   <CardContent className="py-4">
                     <div className="mb-2 flex items-center gap-2 text-muted-foreground">
                       <Code2 className="h-4 w-4" />
-                      <span className="font-mono text-xs">html · css · js</span>
+                      <span className="font-mono text-xs">kode</span>
                     </div>
                     <h3 className="font-display text-lg font-semibold">{c.title}</h3>
                     <p className="mt-1 text-xs text-muted-foreground">{c.students?.full_name ?? "Siswa"}</p>

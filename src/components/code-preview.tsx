@@ -1,39 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Terminal } from "lucide-react";
-
-export type CodeDoc = { html: string; css: string; js: string };
-
-// Skrip kecil di dalam iframe: meneruskan console.* dan error ke halaman induk.
-const BRIDGE = `<script>(function(){
-function fmt(a){try{return typeof a==='string'?a:JSON.stringify(a,function(k,v){return typeof v==='function'?'[fungsi]':v})}catch(e){return String(a)}}
-function send(type,args){try{parent.postMessage({__playground:true,type:type,text:Array.prototype.map.call(args,fmt).join(' ')},'*')}catch(e){}}
-['log','info','warn','error'].forEach(function(t){var o=console[t];console[t]=function(){send(t,arguments);o&&o.apply(console,arguments)}});
-window.addEventListener('error',function(e){send('error',[e.message+(e.lineno?' (baris '+e.lineno+')':'')])});
-window.addEventListener('unhandledrejection',function(e){send('error',['Promise ditolak: '+(e.reason&&e.reason.message||e.reason)])});
-})();<\/script>`;
-
-export function buildSrcDoc({ html, css, js }: CodeDoc) {
-  // Cegah </script> di dalam JS siswa menutup tag lebih awal.
-  const safeJs = js.replace(/<\/script/gi, "<\\/script");
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style>${BRIDGE}</head><body>${html}<script>${safeJs}<\/script></body></html>`;
-}
 
 type LogLine = { type: "log" | "info" | "warn" | "error"; text: string };
 
 type Props = {
-  doc: CodeDoc;
+  /** Dokumen HTML lengkap (hasil buildWebDoc) */
+  srcDoc: string;
   showConsole?: boolean;
   className?: string;
 };
 
 // Preview dijalankan di iframe sandbox TANPA allow-same-origin, jadi kode siswa
 // tidak bisa membaca cookie, localStorage, atau sesi login situs ini.
-export function CodePreview({ doc, showConsole = true, className }: Props) {
+export function CodePreview({ srcDoc, showConsole = true, className }: Props) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [consoleOpen, setConsoleOpen] = useState(false);
-  const srcDoc = useMemo(() => buildSrcDoc(doc), [doc]);
 
   useEffect(() => {
     setLogs([]);

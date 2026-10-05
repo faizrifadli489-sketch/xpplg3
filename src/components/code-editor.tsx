@@ -7,14 +7,45 @@ import { indentUnit } from "@codemirror/language";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { javascript } from "@codemirror/lang-javascript";
+import { json } from "@codemirror/lang-json";
+import { markdown } from "@codemirror/lang-markdown";
+import { python } from "@codemirror/lang-python";
+import { cpp } from "@codemirror/lang-cpp";
+import { java } from "@codemirror/lang-java";
+import { php } from "@codemirror/lang-php";
+import { sql } from "@codemirror/lang-sql";
+import type { CodeLanguage } from "@/lib/ide-files";
 import { oneDark } from "@codemirror/theme-one-dark";
 
-export type CodeLanguage = "html" | "css" | "js";
-
+// Bahasa + lebar indent: Python/C/C++/Java/PHP/SQL 4 spasi, web 2 spasi.
 function languageExtension(language: CodeLanguage) {
-  if (language === "html") return html();
-  if (language === "css") return css();
-  return javascript();
+  const unit = (n: number) => indentUnit.of(" ".repeat(n));
+  switch (language) {
+    case "html":
+      return [html(), unit(2)];
+    case "css":
+      return [css(), unit(2)];
+    case "js":
+      return [javascript(), unit(2)];
+    case "ts":
+      return [javascript({ typescript: true }), unit(2)];
+    case "json":
+      return [json(), unit(2)];
+    case "markdown":
+      return [markdown(), unit(2)];
+    case "python":
+      return [python(), unit(4)];
+    case "cpp":
+      return [cpp(), unit(4)];
+    case "java":
+      return [java(), unit(4)];
+    case "php":
+      return [php(), unit(4)];
+    case "sql":
+      return [sql(), unit(2)];
+    default:
+      return [unit(2)];
+  }
 }
 
 const baseTheme = EditorView.theme({
@@ -53,7 +84,6 @@ export function CodeEditor({ value, onChange, language, dark = false, readOnly =
       doc: value,
       extensions: [
         basicSetup,
-        indentUnit.of("  "),
         keymap.of([
           {
             key: "Mod-Enter",

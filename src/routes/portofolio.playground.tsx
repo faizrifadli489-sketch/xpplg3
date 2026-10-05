@@ -2,10 +2,35 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { createPortfolioCode, getPortfolioCode, updatePortfolioCode } from "@/lib/playground.functions";
+import { createPortfolioCode, getPortfolioCode, runPlaygroundCode, updatePortfolioCode } from "@/lib/playground.functions";
+import {
+  STARTER_FILES,
+  SERVER_LANG_LABEL,
+  MAX_FILES,
+  MAX_FILE_CHARS,
+  MAX_TOTAL_CHARS,
+  baseName,
+  buildWebDoc,
+  deletePath,
+  dirOf,
+  isFolder,
+  joinPath,
+  languageOf,
+  normalizePath,
+  parseFiles,
+  pathExists,
+  renamePath,
+  runTargetFor,
+  templateFor,
+  totalChars,
+  KEEP_FILE,
+  type IdeFile,
+} from "@/lib/ide-files";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/use-theme";
-import { CodePreview, type CodeDoc } from "@/components/code-preview";
+import { CodePreview } from "@/components/code-preview";
+import { FileTree } from "@/components/file-tree";
+import { RunOutput, type RunResult } from "@/components/run-output";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +38,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Play, Upload } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ArrowLeft, Menu, Play, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 // CodeMirror hanya dimuat di browser (lazy), supaya SSR tidak ikut menanggung library editor.
@@ -23,7 +49,7 @@ export const Route = createFileRoute("/portofolio/playground")({
   head: () => ({
     meta: [
       { title: "Playground Kode — X PPLG 3" },
-      { name: "description", content: "Tulis HTML, CSS, dan JavaScript langsung di browser, lalu publikasikan ke portofolio kelas." },
+      { name: "description", content: "Tulis dan jalankan kode (HTML, CSS, JS, Python, C, C++, Java, PHP, SQL) langsung di browser, lalu publikasikan ke portofolio kelas." },
       { property: "og:title", content: "Playground Kode — X PPLG 3" },
       { property: "og:type", content: "website" },
     ],
@@ -34,31 +60,7 @@ export const Route = createFileRoute("/portofolio/playground")({
   component: PlaygroundPage,
 });
 
-const STARTER: CodeDoc = {
-  html: `<h1>Halo, dunia!</h1>
-<button id="btn">Klik aku</button>
-<p id="out"></p>`,
-  css: `body {
-  font-family: system-ui, sans-serif;
-  text-align: center;
-  padding: 2rem;
-}
-
-button {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-}`,
-  js: `let hitung = 0;
-
-document.getElementById("btn").addEventListener("click", () => {
-  hitung++;
-  document.getElementById("out").textContent = "Diklik " + hitung + " kali";
-  console.log("klik ke-" + hitung);
-});`,
-};
-
-type Tab = "html" | "css" | "js";
-const TAB_LABEL: Record<Tab, string> = { html: "HTML", css: "CSS", js: "JS" };
+type PanelTab = "preview" | "output";
 
 function PlaygroundPage() {
   const { slug } = Route.useSearch();
@@ -68,20 +70,25 @@ function PlaygroundPage() {
   const fetchCode = useServerFn(getPortfolioCode);
   const create = useServerFn(createPortfolioCode);
   const update = useServerFn(updatePortfolioCode);
+  const execute = useServerFn(runPlaygroundCode);
 
-  const [tab, setTab] = useState<Tab>("html");
-  const [code, setCode] = useState<CodeDoc>(STARTER);
-  const [runDoc, setRunDoc] = useState<CodeDoc>(STARTER);
+  const [files, setFiles] = useState<IdeFile[]>(STARTER_FILES);
+  const [openPaths, setOpenPaths] = useState<string[]>(["index.html"]);
+  const [activePath, setActivePath] = useState<string | null>("index.html");
+  const [selected, setSelected] = useState<string | null>("index.html");
+  const [explorerOpen, setExplorerOpen] = useState(false);
+
+  const [srcDoc, setSrcDoc] = useState(() => buildWebDoc(STARTER_FILES, "index.html"));
+  const [panelTab, setPanelTab] = useState<PanelTab>("preview");
+  const [stdin, setStdin] = useState("");
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<RunResult | null>(null);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
   const loadedSlug = useRef<string | null>(null);
-
-  // Ref supaya Ctrl+Enter di editor selalu menjalankan kode terbaru.
-  const codeRef = useRef(code);
-  codeRef.current = code;
-  const run = () => setRunDoc({ ...codeRef.current });
 
   const { data: existing, isLoading: loadingExisting } = useQuery({
     queryKey: ["portfolio-code", slug],
@@ -93,9 +100,13 @@ function PlaygroundPage() {
   useEffect(() => {
     if (!slug || !existing || loadedSlug.current === slug) return;
     loadedSlug.current = slug;
-    const doc = { html: existing.html, css: existing.css, js: existing.js };
-    setCode(doc);
-    setRunDoc(doc);
+    const loaded = parseFiles(existing.files);
+    const first = loaded.find((f) => f.path === "index.html") ?? loaded.find((f) => baseName(f.path) !== KEEP_FILE) ?? null;
+    setFiles(loaded);
+    setOpenPaths(first ? [first.path] : []);
+    setActivePath(first?.path ?? null);
+    setSelected(first?.path ?? null);
+    setSrcDoc(buildWebDoc(loaded, first?.path ?? null));
     const isOwner = !!existing.students && (existing.students.id === studentId || isAdmin);
     if (isOwner) {
       setEditingId(existing.id);
@@ -108,9 +119,136 @@ function PlaygroundPage() {
     }
   }, [slug, existing, studentId, isAdmin]);
 
+  // ---------- Operasi file ----------
+
+  const openFile = (path: string) => {
+    setOpenPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    setActivePath(path);
+    setExplorerOpen(false);
+  };
+
+  const closeTab = (path: string) => {
+    const next = openPaths.filter((p) => p !== path);
+    setOpenPaths(next);
+    if (activePath === path) {
+      const idx = openPaths.indexOf(path);
+      setActivePath(next[Math.min(idx, next.length - 1)] ?? null);
+    }
+  };
+
+  const setContent = (path: string, value: string) =>
+    setFiles((prev) => prev.map((f) => (f.path === path && f.content !== value ? { ...f, content: value } : f)));
+
+  // Folder tempat file/folder baru dibuat: folder terpilih, atau induk dari file terpilih.
+  const targetDir = () => {
+    if (!selected) return "";
+    return isFolder(files, selected) ? selected : dirOf(selected);
+  };
+
+  const newFile = () => {
+    if (files.length >= MAX_FILES) return toast.error(`Maksimal ${MAX_FILES} file.`);
+    const dir = targetDir();
+    const input = window.prompt(`Nama file baru${dir ? ` di ${dir}/` : ""} (contoh: main.py, app.js, data/query.sql)`);
+    if (input === null) return;
+    const norm = normalizePath(joinPath(dir, input.trim()));
+    if (!norm.ok) return toast.error(norm.error);
+    if (pathExists(files, norm.path)) return toast.error("Nama itu sudah dipakai.");
+    if (baseName(norm.path) === KEEP_FILE) return toast.error("Nama itu dipakai sistem.");
+    setFiles((prev) => [...prev, { path: norm.path, content: templateFor(norm.path) }]);
+    setSelected(norm.path);
+    openFile(norm.path);
+  };
+
+  const newFolder = () => {
+    const dir = targetDir();
+    const input = window.prompt(`Nama folder baru${dir ? ` di ${dir}/` : ""}`);
+    if (input === null) return;
+    const norm = normalizePath(joinPath(dir, input.trim()));
+    if (!norm.ok) return toast.error(norm.error);
+    if (pathExists(files, norm.path)) return toast.error("Nama itu sudah dipakai.");
+    setFiles((prev) => [...prev, { path: `${norm.path}/${KEEP_FILE}`, content: "" }]);
+    setSelected(norm.path);
+  };
+
+  const renameSelected = () => {
+    if (!selected) return;
+    const input = window.prompt("Nama/path baru", selected);
+    if (input === null || input.trim() === selected) return;
+    const norm = normalizePath(input);
+    if (!norm.ok) return toast.error(norm.error);
+    if (pathExists(files, norm.path)) return toast.error("Nama itu sudah dipakai.");
+    if (norm.path.startsWith(`${selected}/`)) return toast.error("Folder tidak bisa dipindah ke dalam dirinya sendiri.");
+    const remap = (p: string) => (p === selected ? norm.path : p.startsWith(`${selected}/`) ? `${norm.path}/${p.slice(selected.length + 1)}` : p);
+    setFiles((prev) => renamePath(prev, selected, norm.path));
+    setOpenPaths((prev) => prev.map(remap));
+    setActivePath((prev) => (prev ? remap(prev) : prev));
+    setSelected(norm.path);
+  };
+
+  const deleteSelected = () => {
+    if (!selected) return;
+    const folder = isFolder(files, selected);
+    const label = folder ? `folder "${selected}" beserta isinya` : `file "${selected}"`;
+    if (!window.confirm(`Hapus ${label}?`)) return;
+    const gone = (p: string) => p === selected || p.startsWith(`${selected}/`);
+    setFiles((prev) => deletePath(prev, selected));
+    setOpenPaths((prev) => prev.filter((p) => !gone(p)));
+    if (activePath && gone(activePath)) {
+      const remaining = openPaths.filter((p) => !gone(p));
+      setActivePath(remaining[remaining.length - 1] ?? null);
+    }
+    setSelected(null);
+  };
+
+  // ---------- Menjalankan ----------
+
+  const run = async () => {
+    if (!activePath) return toast.error("Buka sebuah file dulu.");
+    const target = runTargetFor(activePath);
+
+    if (target.kind === "none") return toast.error(target.reason);
+
+    if (target.kind === "web") {
+      setSrcDoc(buildWebDoc(files, activePath));
+      setPanelTab("preview");
+      return;
+    }
+
+    if (!user) return toast.error("Masuk dengan akun kelas dulu untuk menjalankan " + SERVER_LANG_LABEL[target.language] + ".");
+    setPanelTab("output");
+    setRunning(true);
+    try {
+      const res = await execute({
+        data: {
+          language: target.language,
+          entry: activePath,
+          files: files.filter((f) => baseName(f.path) !== KEEP_FILE),
+          stdin,
+        },
+      });
+      setResult(res);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal menjalankan kode.";
+      setResult({ language: SERVER_LANG_LABEL[target.language], status: "Gagal", stdout: "", stderr: message, compile: "", exitCode: null, time: null });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  // Ctrl/Cmd+Enter di dalam editor selalu memakai state terbaru.
+  const runRef = useRef(run);
+  runRef.current = run;
+  const onRun = useRef(() => void runRef.current()).current;
+
+  // ---------- Publish ----------
+
   const publishMutation = useMutation({
     mutationFn: () => {
-      const payload = { title, description: description || null, ...code };
+      const payload = {
+        title,
+        description: description || null,
+        files: files.map((f) => ({ path: f.path, content: f.content })),
+      };
       return editingId ? update({ data: { id: editingId, ...payload } }) : create({ data: payload });
     },
     onSuccess: (row) => {
@@ -122,21 +260,32 @@ function PlaygroundPage() {
   });
 
   const openPublish = () => {
-    if (!user) {
-      toast.error("Masuk dengan akun siswa dulu untuk mempublikasikan karya.");
-      return;
-    }
-    if (!studentId && !isAdmin) {
-      toast.error("Hanya akun siswa yang bisa mempublikasikan karya.");
-      return;
-    }
+    if (!user) return toast.error("Masuk dengan akun siswa dulu untuk mempublikasikan karya.");
+    if (!studentId && !isAdmin) return toast.error("Hanya akun siswa yang bisa mempublikasikan karya.");
+    if (files.some((f) => f.content.length > MAX_FILE_CHARS)) return toast.error("Ada file yang terlalu panjang (maks 100.000 karakter).");
+    if (totalChars(files) > MAX_TOTAL_CHARS) return toast.error("Total isi proyek terlalu besar (maks 300.000 karakter).");
     setPublishOpen(true);
   };
 
   const dark = resolvedTheme === "dark";
+  const activeTarget = activePath ? runTargetFor(activePath) : null;
+
+  const explorer = (
+    <FileTree
+      files={files}
+      activePath={activePath}
+      selected={selected}
+      onSelect={setSelected}
+      onOpen={openFile}
+      onNewFile={newFile}
+      onNewFolder={newFolder}
+      onRename={renameSelected}
+      onDelete={deleteSelected}
+    />
+  );
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-3 px-3 py-4 sm:px-6 lg:h-[calc(100dvh-4rem)] lg:px-8">
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-3 py-4 sm:px-6 lg:h-[calc(100dvh-4rem)] lg:px-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Button asChild variant="ghost" size="icon" aria-label="Kembali ke portofolio">
@@ -144,16 +293,24 @@ function PlaygroundPage() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
+          <Button variant="outline" size="icon" className="lg:hidden" aria-label="Buka Explorer" onClick={() => setExplorerOpen(true)}>
+            <Menu className="h-4 w-4" />
+          </Button>
           <div className="min-w-0">
             <h1 className="font-display text-xl font-semibold leading-tight">Playground Kode</h1>
             <p className="truncate text-xs text-muted-foreground">
-              {editingId ? `Mengedit: ${title}` : slug && existing ? "Mode remix — disimpan sebagai karya baru" : "Ctrl/Cmd + Enter untuk menjalankan"}
+              {editingId
+                ? `Mengedit: ${title}`
+                : slug && existing
+                  ? "Mode remix — disimpan sebagai karya baru"
+                  : "Ctrl/Cmd + Enter untuk menjalankan"}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={run} variant="secondary">
-            <Play className="mr-1 h-4 w-4" /> Jalankan
+          <Button onClick={() => void run()} variant="secondary" disabled={running}>
+            <Play className="mr-1 h-4 w-4" />
+            {activeTarget?.kind === "server" ? `Jalankan ${SERVER_LANG_LABEL[activeTarget.language]}` : "Jalankan"}
           </Button>
           <Button onClick={openPublish}>
             <Upload className="mr-1 h-4 w-4" /> {editingId ? "Simpan" : "Publish"}
@@ -161,41 +318,92 @@ function PlaygroundPage() {
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[220px_minmax(0,1fr)_minmax(0,0.9fr)]">
+        {/* Explorer (desktop) */}
+        <aside className="hidden min-h-0 overflow-hidden rounded-md border bg-background lg:block">{explorer}</aside>
+
+        {/* Editor + tab file */}
         <div className="flex h-[55dvh] min-h-0 flex-col gap-2 lg:h-auto">
-          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-            <TabsList>
-              {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
-                <TabsTrigger key={t} value={t} className="font-mono text-xs">
-                  {TAB_LABEL[t]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <div className="flex items-stretch gap-1 overflow-x-auto border-b">
+            {openPaths.length === 0 && <span className="px-2 py-1.5 text-xs text-muted-foreground">Buka file dari Explorer</span>}
+            {openPaths.map((p) => (
+              <div
+                key={p}
+                className={`flex shrink-0 items-center gap-1 rounded-t-md border border-b-0 pl-3 pr-1 text-sm ${
+                  activePath === p ? "bg-background font-medium" : "bg-muted/50 text-muted-foreground"
+                }`}
+              >
+                <button type="button" className="py-1.5" onClick={() => setActivePath(p)} title={p}>
+                  {baseName(p)}
+                </button>
+                <button type="button" className="rounded p-1 hover:bg-muted" aria-label={`Tutup ${baseName(p)}`} onClick={() => closeTab(p)}>
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+
           <div className="relative min-h-0 flex-1">
             {slug && loadingExisting ? (
               <Skeleton className="h-full w-full" />
+            ) : openPaths.length === 0 ? (
+              <div className="flex h-full items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                Belum ada file yang dibuka.
+              </div>
             ) : (
               <Suspense fallback={<Skeleton className="h-full w-full" />}>
-                {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
-                  // Tiga editor terpisah (yang tidak aktif disembunyikan) supaya undo/redo tiap tab tidak tercampur.
-                  <div key={t} className={tab === t ? "h-full" : "hidden"}>
-                    <CodeEditor
-                      language={t}
-                      value={code[t]}
-                      dark={dark}
-                      onRun={run}
-                      onChange={(v) => setCode((c) => (c[t] === v ? c : { ...c, [t]: v }))}
-                    />
-                  </div>
-                ))}
+                {/* Satu editor per file terbuka (yang tidak aktif disembunyikan) supaya undo/redo tiap file terpisah. */}
+                {openPaths.map((p) => {
+                  const file = files.find((f) => f.path === p);
+                  if (!file) return null;
+                  return (
+                    <div key={p} className={activePath === p ? "h-full" : "hidden"}>
+                      <CodeEditor
+                        language={languageOf(p)}
+                        value={file.content}
+                        dark={dark}
+                        onRun={onRun}
+                        onChange={(v) => setContent(p, v)}
+                      />
+                    </div>
+                  );
+                })}
               </Suspense>
             )}
           </div>
         </div>
 
-        <CodePreview doc={runDoc} className="h-[45dvh] lg:h-auto" />
+        {/* Panel hasil */}
+        <div className="flex h-[45dvh] min-h-0 flex-col gap-2 lg:h-auto">
+          <Tabs value={panelTab} onValueChange={(v) => setPanelTab(v as PanelTab)}>
+            <TabsList>
+              <TabsTrigger value="preview" className="text-xs">
+                Preview
+              </TabsTrigger>
+              <TabsTrigger value="output" className="text-xs">
+                Output
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="min-h-0 flex-1">
+            {panelTab === "preview" ? (
+              <CodePreview srcDoc={srcDoc} className="h-full" />
+            ) : (
+              <RunOutput result={result} running={running} stdin={stdin} onStdinChange={setStdin} />
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Explorer (mobile) */}
+      <Sheet open={explorerOpen} onOpenChange={setExplorerOpen}>
+        <SheetContent side="left" className="w-72 p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Explorer</SheetTitle>
+          </SheetHeader>
+          <div className="h-full pt-8">{explorer}</div>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
         <DialogContent>
@@ -218,7 +426,7 @@ function PlaygroundPage() {
               <Textarea id="pg-desc" rows={3} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
             <p className="text-xs text-muted-foreground">
-              Karya bisa dilihat semua orang di halaman portofolio. Jangan menaruh data pribadi di dalam kode.
+              Semua file ({files.filter((f) => baseName(f.path) !== KEEP_FILE).length}) bisa dilihat semua orang di halaman portofolio. Jangan menaruh data pribadi atau kata sandi di dalam kode.
             </p>
             <DialogFooter>
               <Button type="submit" disabled={publishMutation.isPending || !title.trim()}>
