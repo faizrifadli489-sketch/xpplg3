@@ -25,7 +25,13 @@ function MyQr() {
 
   useEffect(() => {
     if (!data?.text) return;
-    QRCode.toDataURL(data.text, { margin: 2, width: 512 }).then(setSrc);
+    // Pengaturan disamakan dengan QR asli: mode byte, koreksi Q, mask 7 (versi otomatis).
+    QRCode.toDataURL([{ data: data.text, mode: "byte" }], {
+      errorCorrectionLevel: "Q",
+      maskPattern: 7,
+      margin: 4,
+      scale: 10,
+    }).then(setSrc);
   }, [data?.text]);
 
   if (!data?.text) return null;
