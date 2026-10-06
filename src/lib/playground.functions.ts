@@ -137,6 +137,93 @@ export const deletePortfolioCode = createServerFn({ method: "POST" })
   });
 
 // ---------------------------------------------------------------------------
+// Proyek tersimpan (terikat akun login). RLS: pemilik penuh, user lain hanya bisa baca yang "open".
+
+const VisibilitySchema = z.enum(["open", "closed"]);
+const ProjectNameSchema = z.string().trim().min(1, "Nama proyek wajib diisi").max(100);
+
+// Daftar proyek milik user (tanpa isi file, supaya ringan).
+export const listMyProjects = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("playground_projects")
+      .select("id, name, visibility, updated_at")
+      .eq("owner_id", context.userId)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+// Daftar proyek open source milik user lain.
+export const listOpenProjects = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("playground_projects")
+      .select("id, name, updated_at")
+      .eq("visibility", "open")
+      .neq("owner_id", context.userId)
+      .order("updated_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const getProject = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("playground_projects")
+      .select("id, owner_id, name, files, visibility, updated_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row ?? null;
+  });
+
+export const createProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ name: ProjectNameSchema, visibility: VisibilitySchema, files: FilesSchema }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("playground_projects")
+      .insert({ owner_id: context.userId, name: data.name, visibility: data.visibility, files: data.files })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const saveProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({ id: z.string().uuid(), name: ProjectNameSchema.optional(), visibility: VisibilitySchema.optional(), files: FilesSchema.optional() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { id, ...patch } = data;
+    const { data: row, error } = await context.supabase
+      .from("playground_projects")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("owner_id", context.userId)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const deleteProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("playground_projects").delete().eq("id", data.id).eq("owner_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
+// ---------------------------------------------------------------------------
 // Menjalankan kode (Python, C, C++, Java, PHP, SQL) lewat server eksekusi luar.
 //
 // Konfigurasi lewat environment variable (server saja, tidak pernah dikirim ke browser):

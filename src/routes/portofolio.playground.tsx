@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { createPortfolioCode, getPortfolioCode, runPlaygroundCode, updatePortfolioCode } from "@/lib/playground.functions";
+import { createPortfolioCode, createProject, getPortfolioCode, getProject, runPlaygroundCode, saveProject, updatePortfolioCode } from "@/lib/playground.functions";
 import {
   STARTER_FILES,
   SERVER_LANG_LABEL,
@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/use-theme";
 import { CodePreview } from "@/components/code-preview";
 import { FileTree } from "@/components/file-tree";
+import { ChoiceGroup, ProjectPicker } from "@/components/project-picker";
 import { RunOutput, type RunResult } from "@/components/run-output";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ArrowLeft, Menu, Play, Upload, X } from "lucide-react";
+import { ArrowLeft, Globe, Lock, Menu, Play, Save, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 // CodeMirror hanya dimuat di browser (lazy), supaya SSR tidak ikut menanggung library editor.
@@ -54,8 +55,9 @@ export const Route = createFileRoute("/portofolio/playground")({
       { property: "og:type", content: "website" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { slug?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { slug?: string; project?: string } => ({
     slug: typeof search.slug === "string" && search.slug ? search.slug : undefined,
+    project: typeof search.project === "string" && search.project ? search.project : undefined,
   }),
   component: PlaygroundPage,
 });
@@ -63,7 +65,7 @@ export const Route = createFileRoute("/portofolio/playground")({
 type PanelTab = "preview" | "output";
 
 function PlaygroundPage() {
-  const { slug } = Route.useSearch();
+  const { slug, project } = Route.useSearch();
   const navigate = useNavigate();
   const { user, studentId, isAdmin } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -71,6 +73,9 @@ function PlaygroundPage() {
   const create = useServerFn(createPortfolioCode);
   const update = useServerFn(updatePortfolioCode);
   const execute = useServerFn(runPlaygroundCode);
+  const fetchProject = useServerFn(getProject);
+  const createProj = useServerFn(createProject);
+  const saveProj = useServerFn(saveProject);
 
   const [files, setFiles] = useState<IdeFile[]>(STARTER_FILES);
   const [openPaths, setOpenPaths] = useState<string[]>(["index.html"]);
@@ -89,6 +94,84 @@ function PlaygroundPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
   const loadedSlug = useRef<string | null>(null);
+
+  // Proyek tersimpan (akun login). scratch = coba tanpa menyimpan.
+  const [scratch, setScratch] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projName, setProjName] = useState("");
+  const [visibility, setVisibility] = useState<"open" | "closed">("closed");
+  const [saveOpen, setSaveOpen] = useState(false);
+  const loadedProject = useRef<string | null>(null);
+
+  const { data: savedProject, isLoading: loadingProject } = useQuery({
+    queryKey: ["playground-project", project],
+    queryFn: () => fetchProject({ data: { id: project! } }),
+    enabled: !!project && !!user,
+  });
+
+  // Muat proyek yang dibuka lewat ?project=. Pemilik mengedit; selain itu jadi salinan (disimpan sebagai proyek baru).
+  useEffect(() => {
+    if (!project || !savedProject || loadedProject.current === project) return;
+    loadedProject.current = project;
+    const loaded = parseFiles(savedProject.files);
+    const first = loaded.find((f) => f.path === "index.html") ?? loaded.find((f) => baseName(f.path) !== KEEP_FILE) ?? null;
+    setFiles(loaded);
+    setOpenPaths(first ? [first.path] : []);
+    setActivePath(first?.path ?? null);
+    setSelected(first?.path ?? null);
+    setSrcDoc(buildWebDoc(loaded, first?.path ?? null));
+    if (savedProject.owner_id === user?.id) {
+      setProjectId(savedProject.id);
+      setProjName(savedProject.name);
+      setVisibility(savedProject.visibility as "open" | "closed");
+    } else {
+      setProjectId(null);
+      setProjName(`Salinan ${savedProject.name}`.slice(0, 100));
+      setVisibility("closed");
+    }
+  }, [project, savedProject, user?.id]);
+
+  const checkSize = () => {
+    if (files.some((f) => f.content.length > MAX_FILE_CHARS)) return toast.error("Ada file yang terlalu panjang (maks 100.000 karakter).");
+    if (totalChars(files) > MAX_TOTAL_CHARS) return toast.error("Total isi proyek terlalu besar (maks 300.000 karakter).");
+    return true;
+  };
+  const projectFiles = () => files.map((f) => ({ path: f.path, content: f.content }));
+
+  const saveMutation = useMutation({
+    mutationFn: () => saveProj({ data: { id: projectId!, name: projName, visibility, files: projectFiles() } }),
+    onSuccess: () => toast.success("Proyek disimpan."),
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan proyek."),
+  });
+
+  const createCopyMutation = useMutation({
+    mutationFn: () => createProj({ data: { name: projName, visibility, files: projectFiles() } }),
+    onSuccess: (row) => {
+      toast.success("Proyek disimpan.");
+      setSaveOpen(false);
+      void navigate({ to: "/portofolio/playground", search: { project: row.id }, replace: true });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan proyek."),
+  });
+
+  const visibilityMutation = useMutation({
+    mutationFn: (next: "open" | "closed") => saveProj({ data: { id: projectId!, visibility: next } }),
+    onSuccess: (_row, next) => {
+      setVisibility(next);
+      toast.success(next === "open" ? "Proyek jadi open source." : "Proyek jadi close source.");
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal mengubah visibilitas."),
+  });
+
+  const onSaveProject = () => {
+    if (!user) return toast.error("Masuk dulu untuk menyimpan proyek.");
+    if (checkSize() !== true) return;
+    if (projectId) saveMutation.mutate();
+    else {
+      if (!projName) setProjName(title || "Proyekku");
+      setSaveOpen(true);
+    }
+  };
 
   const { data: existing, isLoading: loadingExisting } = useQuery({
     queryKey: ["portfolio-code", slug],
@@ -267,6 +350,11 @@ function PlaygroundPage() {
     setPublishOpen(true);
   };
 
+  const openProject = (id: string) => void navigate({ to: "/portofolio/playground", search: { project: id } });
+
+  // Tanpa ?slug= / ?project= dan belum pilih "coba tanpa menyimpan": tampilkan daftar proyek.
+  if (!slug && !project && !scratch) return <ProjectPicker onOpen={openProject} onScratch={() => setScratch(true)} />;
+
   const dark = resolvedTheme === "dark";
   const activeTarget = activePath ? runTargetFor(activePath) : null;
 
@@ -299,7 +387,11 @@ function PlaygroundPage() {
           <div className="min-w-0">
             <h1 className="font-display text-xl font-semibold leading-tight">Playground Kode</h1>
             <p className="truncate text-xs text-muted-foreground">
-              {editingId
+              {projectId
+                ? `Proyek: ${projName}`
+                : project && savedProject
+                  ? "Proyek orang lain — simpan sebagai salinanmu"
+                  : editingId
                 ? `Mengedit: ${title}`
                 : slug && existing
                   ? "Mode remix — disimpan sebagai karya baru"
@@ -307,13 +399,27 @@ function PlaygroundPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {projectId && (
+            <Button
+              variant="outline"
+              disabled={visibilityMutation.isPending}
+              onClick={() => visibilityMutation.mutate(visibility === "open" ? "closed" : "open")}
+              title="Klik untuk ganti open/close source"
+            >
+              {visibility === "open" ? <Globe className="mr-1 h-4 w-4" /> : <Lock className="mr-1 h-4 w-4" />}
+              {visibility === "open" ? "Open source" : "Close source"}
+            </Button>
+          )}
+          <Button variant="outline" onClick={onSaveProject} disabled={saveMutation.isPending || (!!project && loadingProject)}>
+            <Save className="mr-1 h-4 w-4" /> {saveMutation.isPending ? "Menyimpan..." : projectId ? "Simpan" : "Simpan Proyek"}
+          </Button>
           <Button onClick={() => void run()} variant="secondary" disabled={running}>
             <Play className="mr-1 h-4 w-4" />
             {activeTarget?.kind === "server" ? `Jalankan ${SERVER_LANG_LABEL[activeTarget.language]}` : "Jalankan"}
           </Button>
           <Button onClick={openPublish}>
-            <Upload className="mr-1 h-4 w-4" /> {editingId ? "Simpan" : "Publish"}
+            <Upload className="mr-1 h-4 w-4" /> {editingId ? "Perbarui Karya" : "Publish"}
           </Button>
         </div>
       </div>
@@ -344,7 +450,7 @@ function PlaygroundPage() {
           </div>
 
           <div className="relative min-h-0 flex-1">
-            {slug && loadingExisting ? (
+            {(slug && loadingExisting) || (project && loadingProject) ? (
               <Skeleton className="h-full w-full" />
             ) : openPaths.length === 0 ? (
               <div className="flex h-full items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
@@ -404,6 +510,40 @@ function PlaygroundPage() {
           <div className="h-full pt-8">{explorer}</div>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Simpan sebagai proyek</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              createCopyMutation.mutate();
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="sp-name">Nama proyek</Label>
+              <Input id="sp-name" value={projName} maxLength={100} required onChange={(e) => setProjName(e.target.value)} />
+            </div>
+            <ChoiceGroup
+              label="Kode proyek"
+              value={visibility}
+              onChange={setVisibility}
+              options={[
+                { value: "closed", title: "Close source", desc: "Hanya kamu yang bisa lihat", icon: <Lock className="h-4 w-4" /> },
+                { value: "open", title: "Open source", desc: "User lain bisa lihat kodenya", icon: <Globe className="h-4 w-4" /> },
+              ]}
+            />
+            <DialogFooter>
+              <Button type="submit" disabled={createCopyMutation.isPending || !projName.trim()}>
+                {createCopyMutation.isPending ? "Menyimpan..." : "Simpan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
         <DialogContent>
