@@ -69,7 +69,7 @@ type PanelTab = "preview" | "output";
 function PlaygroundPage() {
   const { slug, project } = Route.useSearch();
   const navigate = useNavigate();
-  const { user, studentId, isAdmin } = useAuth();
+  const { user, studentId, isAdmin, isLoading: authLoading, roleLoading } = useAuth();
   const { resolvedTheme } = useTheme();
   const fetchCode = useServerFn(getPortfolioCode);
   const create = useServerFn(createPortfolioCode);
@@ -97,6 +97,7 @@ function PlaygroundPage() {
   const [description, setDescription] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [pubVisibility, setPubVisibility] = useState<"open" | "closed">("open");
   const loadedSlug = useRef<string | null>(null);
 
   // Proyek tersimpan (akun login). scratch = coba tanpa menyimpan.
@@ -186,6 +187,15 @@ function PlaygroundPage() {
   // Muat karya yang dibuka lewat ?slug=. Pemilik mengedit; selain itu jadi remix (disimpan sebagai karya baru).
   useEffect(() => {
     if (!slug || !existing || loadedSlug.current === slug) return;
+    if (authLoading || roleLoading) return;
+    const owner = !!existing.students && (existing.students.id === studentId || isAdmin);
+    // Close source: orang lain tidak boleh membuka kodenya di editor (remix).
+    if (existing.is_open_source === false && !owner) {
+      loadedSlug.current = slug;
+      toast.error("Karya ini close source, kodenya tidak bisa dibuka.");
+      void navigate({ to: "/portofolio/$slug", params: { slug }, replace: true });
+      return;
+    }
     loadedSlug.current = slug;
     const loaded = parseFiles(existing.files);
     const first = loaded.find((f) => f.path === "index.html") ?? loaded.find((f) => baseName(f.path) !== KEEP_FILE) ?? null;
@@ -197,6 +207,7 @@ function PlaygroundPage() {
     const isOwner = !!existing.students && (existing.students.id === studentId || isAdmin);
     if (isOwner) {
       setEditingId(existing.id);
+      setPubVisibility(existing.is_open_source === false ? "closed" : "open");
       setTitle(existing.title);
       setDescription(existing.description ?? "");
     } else {
@@ -204,7 +215,7 @@ function PlaygroundPage() {
       setTitle(`Remix ${existing.title}`.slice(0, 100));
       setDescription("");
     }
-  }, [slug, existing, studentId, isAdmin]);
+  }, [slug, existing, studentId, isAdmin, authLoading, roleLoading, navigate]);
 
   // ---------- Operasi file ----------
 
@@ -344,6 +355,7 @@ function PlaygroundPage() {
         title,
         description: description || null,
         files: files.map((f) => ({ path: f.path, content: f.content })),
+        openSource: pubVisibility === "open",
       };
       return editingId ? update({ data: { id: editingId, ...payload } }) : create({ data: payload });
     },
@@ -360,6 +372,8 @@ function PlaygroundPage() {
     if (!studentId && !isAdmin) return toast.error("Hanya akun siswa yang bisa mempublikasikan karya.");
     if (files.some((f) => f.content.length > MAX_FILE_CHARS)) return toast.error("Ada file yang terlalu panjang (maks 100.000 karakter).");
     if (totalChars(files) > MAX_TOTAL_CHARS) return toast.error("Total isi proyek terlalu besar (maks 300.000 karakter).");
+    // Proyek tersimpan membawa pilihan open/close source-nya ke publish pertama.
+    if (!editingId && projectId) setPubVisibility(visibility);
     setPublishOpen(true);
   };
 
@@ -586,8 +600,19 @@ function PlaygroundPage() {
               <Label htmlFor="pg-desc">Deskripsi singkat (opsional)</Label>
               <Textarea id="pg-desc" rows={3} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
+            <ChoiceGroup
+              label="Kode karya"
+              value={pubVisibility}
+              onChange={setPubVisibility}
+              options={[
+                { value: "open", title: "Open source", desc: "Semua orang bisa lihat kodenya", icon: <Globe className="h-4 w-4" /> },
+                { value: "closed", title: "Close source", desc: "Orang lain hanya bisa menjalankan", icon: <Lock className="h-4 w-4" /> },
+              ]}
+            />
             <p className="text-xs text-muted-foreground">
-              Semua file ({files.filter((f) => baseName(f.path) !== KEEP_FILE).length}) bisa dilihat semua orang di halaman portofolio. Jangan menaruh data pribadi atau kata sandi di dalam kode.
+              {pubVisibility === "open"
+                ? `Semua file (${files.filter((f) => baseName(f.path) !== KEEP_FILE).length}) bisa dilihat semua orang di halaman portofolio. Jangan menaruh data pribadi atau kata sandi di dalam kode.`
+                : "Kodenya disembunyikan dari halaman karya, tapi tetap dijalankan di browser pengunjung. Jangan menaruh kata sandi atau data rahasia di dalam kode."}
             </p>
             <DialogFooter>
               <Button type="submit" disabled={publishMutation.isPending || !title.trim()}>

@@ -36,6 +36,8 @@ const CodeSchema = z.object({
   title: z.string().trim().min(1, "Judul wajib diisi").max(100),
   description: z.string().trim().max(500).nullable().optional(),
   files: FilesSchema,
+  // false = close source: orang lain hanya bisa menjalankan, kodenya disembunyikan di UI.
+  openSource: z.boolean().optional(),
 });
 
 function slugify(text: string) {
@@ -51,13 +53,15 @@ function slugify(text: string) {
 }
 
 // Daftar publik (tanpa isi kode, supaya ringan).
+// Karya close source tetap tampil di daftar (orang lain bisa menjalankannya, hanya kodenya yang disembunyikan),
+// jadi dibaca lewat admin client dan difilter manual ke karya yang sudah published.
 export const listPortfolioCodes = createServerFn({ method: "GET" }).handler(async () => {
-  const { createServerPublicClient } = await import("@/lib/supabase-public.server");
-  const supabasePublic = createServerPublicClient();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data, error } = await supabasePublic
+  const { data, error } = await supabaseAdmin
     .from("portfolio_codes")
-    .select("id, slug, title, description, created_at, updated_at, students(id, full_name)")
+    .select("id, slug, title, description, is_open_source, created_at, updated_at, students(id, full_name)")
+    .eq("is_published", true)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -68,13 +72,13 @@ export const listPortfolioCodes = createServerFn({ method: "GET" }).handler(asyn
 export const getPortfolioCode = createServerFn({ method: "GET" })
   .inputValidator((data) => z.object({ slug: z.string().min(1).max(80) }).parse(data))
   .handler(async ({ data }) => {
-    const { createServerPublicClient } = await import("@/lib/supabase-public.server");
-    const supabasePublic = createServerPublicClient();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: row, error } = await supabasePublic
+    const { data: row, error } = await supabaseAdmin
       .from("portfolio_codes")
-      .select("id, slug, title, description, files, created_at, updated_at, students(id, full_name)")
+      .select("id, slug, title, description, files, is_open_source, created_at, updated_at, students(id, full_name)")
       .eq("slug", data.slug)
+      .eq("is_published", true)
       .maybeSingle();
 
     if (error) throw new Error(error.message);
@@ -100,7 +104,7 @@ export const createPortfolioCode = createServerFn({ method: "POST" })
         creator_student_id: studentId,
         // Kolom is_published default false di database; RLS menyembunyikan karya yang belum published.
         is_published: true,
-        is_open_source: true,
+        is_open_source: data.openSource ?? true,
       })
       .select("id, slug")
       .single();
@@ -121,6 +125,7 @@ export const updatePortfolioCode = createServerFn({ method: "POST" })
         description: data.description || null,
         files: data.files,
         is_published: true,
+        ...(data.openSource !== undefined ? { is_open_source: data.openSource } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.id)
