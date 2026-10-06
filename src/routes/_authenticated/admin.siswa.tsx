@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listStudents, createStudent, updateStudent, deleteStudent } from "@/lib/students.functions";
+import { listStudents, createStudent, updateStudent, deleteStudent, listStudentNisn } from "@/lib/students.functions";
 import {
   listStudentAccounts,
   createStudentAccount,
@@ -45,12 +45,13 @@ type FormState = {
   nickname: string;
   gender: string;
   photo_url: string;
+  nisn: string;
 };
 
 type Credential = { student_id: string; full_name: string; username: string; password: string };
 type CredentialsView = { rows: Credential[]; failed: { full_name: string; error: string }[] };
 
-const emptyForm: FormState = { full_name: "", nickname: "", gender: "", photo_url: "" };
+const emptyForm: FormState = { full_name: "", nickname: "", gender: "", photo_url: "", nisn: "" };
 
 function AdminSiswa() {
   const queryClient = useQueryClient();
@@ -58,6 +59,7 @@ function AdminSiswa() {
   const create = useServerFn(createStudent);
   const update = useServerFn(updateStudent);
   const remove = useServerFn(deleteStudent);
+  const fetchNisn = useServerFn(listStudentNisn);
   const fetchAccounts = useServerFn(listStudentAccounts);
   const createAccount = useServerFn(createStudentAccount);
   const createAll = useServerFn(createAllStudentAccounts);
@@ -73,6 +75,9 @@ function AdminSiswa() {
     queryKey: ["students"],
     queryFn: () => fetchStudents(),
   });
+
+  const { data: nisnRows } = useQuery({ queryKey: ["student-nisn"], queryFn: () => fetchNisn() });
+  const nisnById = new Map((nisnRows ?? []).map((r) => [r.student_id, r.nisn]));
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["students"] });
 
@@ -144,6 +149,7 @@ function AdminSiswa() {
         ...(form.nickname ? { nickname: form.nickname } : {}),
         ...(form.gender ? { gender: form.gender as "L" | "P" } : {}),
         photo_url: form.photo_url || null,
+        nisn: form.nisn,
       };
       if (editing) {
         return update({ data: { id: editing.id, ...payload } });
@@ -156,6 +162,7 @@ function AdminSiswa() {
       setEditing(null);
       setForm(emptyForm);
       invalidate();
+      queryClient.invalidateQueries({ queryKey: ["student-nisn"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan data."),
   });
@@ -182,6 +189,7 @@ function AdminSiswa() {
       nickname: student.nickname ?? "",
       gender: student.gender ?? "",
       photo_url: student.photo_url ?? "",
+      nisn: nisnById.get(student.id) ?? "",
     });
     setOpen(true);
   };
@@ -235,6 +243,15 @@ function AdminSiswa() {
                     <SelectItem value="P">Perempuan</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nisn">NISN (untuk QR siswa, hanya dilihat siswa ybs & admin)</Label>
+                <Input
+                  id="nisn"
+                  inputMode="numeric"
+                  value={form.nisn}
+                  onChange={(e) => setForm({ ...form, nisn: e.target.value.replace(/\D/g, "") })}
+                />
               </div>
               <ImageUpload
                 value={form.photo_url}

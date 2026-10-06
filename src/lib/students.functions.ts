@@ -7,6 +7,7 @@ const StudentSchema = z.object({
   nickname: z.string().optional(),
   gender: z.enum(["L", "P"]).optional(),
   photo_url: z.string().url().nullable().optional(),
+  nisn: z.string().regex(/^[0-9]{5,20}$/, "NISN harus angka (5-20 digit)").optional().or(z.literal("")),
 });
 
 const StudentUpdateSchema = StudentSchema.partial().extend({
@@ -63,6 +64,13 @@ export const createStudent = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
 
+    if (data.nisn) {
+      const { error: e2 } = await context.supabase
+        .from("student_private")
+        .upsert({ student_id: student.id, nisn: data.nisn, updated_at: new Date().toISOString() });
+      if (e2) throw new Error(e2.message);
+    }
+
     return student;
   });
 
@@ -92,7 +100,26 @@ export const updateStudent = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
 
+    if (data.nisn !== undefined) {
+      const q = data.nisn
+        ? context.supabase
+            .from("student_private")
+            .upsert({ student_id: data.id, nisn: data.nisn, updated_at: new Date().toISOString() })
+        : context.supabase.from("student_private").delete().eq("student_id", data.id);
+      const { error: e2 } = await q;
+      if (e2) throw new Error(e2.message);
+    }
+
     return student;
+  });
+
+// Khusus admin (dibatasi RLS): daftar NISN semua siswa untuk form edit.
+export const listStudentNisn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.from("student_private").select("student_id, nisn");
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
 
 export const deleteStudent = createServerFn({ method: "POST" })

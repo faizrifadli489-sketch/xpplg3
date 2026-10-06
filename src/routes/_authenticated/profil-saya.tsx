@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getMyProfile, updateMyProfile } from "@/lib/profile.functions";
+import { getMyProfile, updateMyProfile, getMyQrText } from "@/lib/profile.functions";
+import QRCode from "qrcode";
 import { ImageUpload } from "@/components/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,31 @@ export const Route = createFileRoute("/_authenticated/profil-saya")({
   }),
   component: ProfilSayaPage,
 });
+
+function MyQr() {
+  const fetchQr = useServerFn(getMyQrText);
+  const { data } = useQuery({ queryKey: ["my-qr"], queryFn: () => fetchQr() });
+  const [src, setSrc] = useState("");
+
+  useEffect(() => {
+    if (!data?.text) return;
+    QRCode.toDataURL(data.text, { margin: 2, width: 512 }).then(setSrc);
+  }, [data?.text]);
+
+  if (!data?.text) return null;
+  return (
+    <div className="mt-10 rounded-lg border border-border p-5 text-center">
+      <h2 className="font-semibold">QR Saya</h2>
+      <p className="mt-1 text-xs text-muted-foreground">Hanya kamu yang bisa melihat QR ini.</p>
+      {src && <img src={src} alt="QR siswa" className="mx-auto mt-4 w-56 rounded-md bg-white" />}
+      {src && (
+        <Button asChild variant="outline" size="sm" className="mt-4">
+          <a href={src} download="qr-saya.png">Unduh</a>
+        </Button>
+      )}
+    </div>
+  );
+}
 
 function ProfilSayaPage() {
   const queryClient = useQueryClient();
@@ -110,6 +136,8 @@ function ProfilSayaPage() {
           {mutation.isPending ? "Menyimpan..." : "Simpan"}
         </Button>
       </form>
+
+      <MyQr />
     </div>
   );
 }

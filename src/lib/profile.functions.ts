@@ -45,3 +45,19 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
+// Isi QR: 69944965.NISN.Nama Siswa. NISN dibatasi RLS: hanya pemilik (atau admin) yang bisa membaca.
+export const getMyQrText = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: studentId } = await context.supabase.rpc("current_student_id");
+    if (!studentId) return null;
+    const { data: student } = await context.supabase.from("students").select("full_name").eq("id", studentId).single();
+    const { data: priv } = await context.supabase
+      .from("student_private")
+      .select("nisn")
+      .eq("student_id", studentId)
+      .maybeSingle();
+    if (!student || !priv) return { text: null as string | null };
+    return { text: `69944965.${priv.nisn}.${student.full_name}` };
+  });
