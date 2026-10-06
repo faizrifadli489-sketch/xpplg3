@@ -98,6 +98,9 @@ export const createPortfolioCode = createServerFn({ method: "POST" })
         description: data.description || null,
         files: data.files,
         creator_student_id: studentId,
+        // Kolom is_published default false di database; RLS menyembunyikan karya yang belum published.
+        is_published: true,
+        is_open_source: true,
       })
       .select("id, slug")
       .single();
@@ -117,6 +120,7 @@ export const updatePortfolioCode = createServerFn({ method: "POST" })
         title: data.title,
         description: data.description || null,
         files: data.files,
+        is_published: true,
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.id)
