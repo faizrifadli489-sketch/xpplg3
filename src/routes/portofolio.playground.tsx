@@ -32,6 +32,8 @@ import { CodePreview } from "@/components/code-preview";
 import { FileTree } from "@/components/file-tree";
 import { ChoiceGroup, ProjectPicker } from "@/components/project-picker";
 import { RunOutput, type RunResult } from "@/components/run-output";
+import { PythonConsole } from "@/components/python-console";
+import { usePythonRunner } from "@/lib/python-runner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ArrowLeft, Globe, Lock, Menu, Play, Save, Upload, X } from "lucide-react";
+import { ArrowLeft, Globe, Lock, Menu, Play, Save, Square, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 // CodeMirror hanya dimuat di browser (lazy), supaya SSR tidak ikut menanggung library editor.
@@ -88,6 +90,8 @@ function PlaygroundPage() {
   const [stdin, setStdin] = useState("");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
+  const py = usePythonRunner();
+  const [outputKind, setOutputKind] = useState<"python" | "server">("server");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -297,7 +301,16 @@ function PlaygroundPage() {
       return;
     }
 
+    // Python jalan di browser (Pyodide): live output, input() interaktif, tanpa login.
+    if (target.language === "python") {
+      setOutputKind("python");
+      setPanelTab("output");
+      py.run(files.filter((f) => baseName(f.path) !== KEEP_FILE), activePath);
+      return;
+    }
+
     if (!user) return toast.error("Masuk dengan akun kelas dulu untuk menjalankan " + SERVER_LANG_LABEL[target.language] + ".");
+    setOutputKind("server");
     setPanelTab("output");
     setRunning(true);
     try {
@@ -414,10 +427,16 @@ function PlaygroundPage() {
           <Button variant="outline" onClick={onSaveProject} disabled={saveMutation.isPending || (!!project && loadingProject)}>
             <Save className="mr-1 h-4 w-4" /> {saveMutation.isPending ? "Menyimpan..." : projectId ? "Simpan" : "Simpan Proyek"}
           </Button>
-          <Button onClick={() => void run()} variant="secondary" disabled={running}>
-            <Play className="mr-1 h-4 w-4" />
-            {activeTarget?.kind === "server" ? `Jalankan ${SERVER_LANG_LABEL[activeTarget.language]}` : "Jalankan"}
-          </Button>
+          {py.active ? (
+            <Button onClick={py.stop} variant="destructive">
+              <Square className="mr-1 h-4 w-4" /> Stop
+            </Button>
+          ) : (
+            <Button onClick={() => void run()} variant="secondary" disabled={running}>
+              <Play className="mr-1 h-4 w-4" />
+              {activeTarget?.kind === "server" ? `Jalankan ${SERVER_LANG_LABEL[activeTarget.language]}` : "Jalankan"}
+            </Button>
+          )}
           <Button onClick={openPublish}>
             <Upload className="mr-1 h-4 w-4" /> {editingId ? "Perbarui Karya" : "Publish"}
           </Button>
@@ -494,6 +513,8 @@ function PlaygroundPage() {
           <div className="min-h-0 flex-1">
             {panelTab === "preview" ? (
               <CodePreview srcDoc={srcDoc} className="h-full" />
+            ) : outputKind === "python" ? (
+              <PythonConsole segments={py.segments} status={py.status} onInput={py.sendInput} />
             ) : (
               <RunOutput result={result} running={running} stdin={stdin} onStdinChange={setStdin} />
             )}
