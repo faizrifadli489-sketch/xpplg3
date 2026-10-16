@@ -13,10 +13,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { ArrowLeft, FileCode2, FilePlus2, Globe, Lock, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-type Kind = "empty" | "html";
+type Kind = "empty" | "html" | "python";
 type Visibility = "open" | "closed";
 
 const EMPTY_FILES: IdeFile[] = [{ path: "index.html", content: "" }];
+const PYTHON_FILES: IdeFile[] = [{ path: "main.py", content: "" }];
+const FILES_BY_KIND: Record<Kind, IdeFile[]> = { empty: EMPTY_FILES, html: STARTER_FILES, python: PYTHON_FILES };
 
 const date = (iso: string) => new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
@@ -47,7 +49,7 @@ export function ProjectPicker({ onOpen, onScratch }: { onOpen: (id: string) => v
   const open = useQuery({ queryKey: ["playground-open-projects"], queryFn: () => fetchOpen(), enabled: !!user });
 
   const createMutation = useMutation({
-    mutationFn: () => create({ data: { name, visibility, files: kind === "html" ? STARTER_FILES : EMPTY_FILES } }),
+    mutationFn: () => create({ data: { name, visibility, files: FILES_BY_KIND[kind] } }),
     onSuccess: (row) => {
       void qc.invalidateQueries({ queryKey: ["playground-projects"] });
       setDialogOpen(false);
@@ -189,6 +191,7 @@ export function ProjectPicker({ onOpen, onScratch }: { onOpen: (id: string) => v
               options={[
                 { value: "empty", title: "Proyek kosong", desc: "Satu file index.html kosong", icon: <FilePlus2 className="h-4 w-4" /> },
                 { value: "html", title: "Template HTML", desc: "HTML + CSS + JS dasar", icon: <FileCode2 className="h-4 w-4" /> },
+                { value: "python", title: "Python kosong", desc: "Satu file main.py kosong", icon: <FileCode2 className="h-4 w-4" /> },
               ]}
             />
             <ChoiceGroup
@@ -226,7 +229,7 @@ export function ChoiceGroup<T extends string>({
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={label}>
+      <div className={`grid gap-2 ${options.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`} role="radiogroup" aria-label={label}>
         {options.map((o) => (
           <button
             key={o.value}

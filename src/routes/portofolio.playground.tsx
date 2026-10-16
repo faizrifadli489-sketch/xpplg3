@@ -66,6 +66,15 @@ export const Route = createFileRoute("/portofolio/playground")({
 
 type PanelTab = "preview" | "output";
 
+const fileSig = (list: IdeFile[]) => JSON.stringify(list.map((f) => [f.path, f.content]));
+
+const AUTO_LABEL = {
+  saved: "Tersimpan otomatis",
+  dirty: "Belum tersimpan…",
+  saving: "Menyimpan…",
+  error: "Gagal menyimpan otomatis",
+} as const;
+
 function PlaygroundPage() {
   const { slug, project } = Route.useSearch();
   const navigate = useNavigate();
@@ -108,6 +117,15 @@ function PlaygroundPage() {
   const [saveOpen, setSaveOpen] = useState(false);
   const loadedProject = useRef<string | null>(null);
 
+  // Auto save (hanya untuk proyek milik sendiri). lastSaved = isi file terakhir yang sudah ada di database.
+  type AutoState = "saved" | "dirty" | "saving" | "error";
+  const [autoState, setAutoState] = useState<AutoState>("saved");
+  const [autoRetry, setAutoRetry] = useState(0);
+  const lastSaved = useRef("");
+  const filesRef = useRef(files);
+  filesRef.current = files;
+  const filesSig = fileSig(files);
+
   const { data: savedProject, isLoading: loadingProject } = useQuery({
     queryKey: ["playground-project", project],
     queryFn: () => fetchProject({ data: { id: project! } }),
@@ -120,6 +138,8 @@ function PlaygroundPage() {
     loadedProject.current = project;
     const loaded = parseFiles(savedProject.files);
     const first = loaded.find((f) => f.path === "index.html") ?? loaded.find((f) => baseName(f.path) !== KEEP_FILE) ?? null;
+    lastSaved.current = fileSig(loaded);
+    setAutoState("saved");
     setFiles(loaded);
     setOpenPaths(first ? [first.path] : []);
     setActivePath(first?.path ?? null);
@@ -144,8 +164,16 @@ function PlaygroundPage() {
   const projectFiles = () => files.map((f) => ({ path: f.path, content: f.content }));
 
   const saveMutation = useMutation({
-    mutationFn: () => saveProj({ data: { id: projectId!, name: projName, visibility, files: projectFiles() } }),
-    onSuccess: () => toast.success("Proyek disimpan."),
+    mutationFn: async () => {
+      const sig = filesSig;
+      const row = await saveProj({ data: { id: projectId!, name: projName, visibility, files: projectFiles() } });
+      lastSaved.current = sig;
+      return row;
+    },
+    onSuccess: () => {
+      setAutoState(fileSig(filesRef.current) === lastSaved.current ? "saved" : "dirty");
+      toast.success("Proyek disimpan.");
+    },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan proyek."),
   });
 
@@ -167,6 +195,52 @@ function PlaygroundPage() {
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal mengubah visibilitas."),
   });
+
+  // Simpan otomatis 1,5 detik setelah berhenti mengetik, dan langsung saat tab disembunyikan.
+  useEffect(() => {
+    if (!projectId || !user) return;
+    if (filesSig === lastSaved.current) return;
+    const current = filesRef.current;
+    if (current.some((f) => f.content.length > MAX_FILE_CHARS) || totalChars(current) > MAX_TOTAL_CHARS) {
+      setAutoState("error");
+      return;
+    }
+    setAutoState("dirty");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const save = async () => {
+      clearTimeout(timer);
+      if (fileSig(filesRef.current) === lastSaved.current) return;
+      const sig = filesSig;
+      setAutoState("saving");
+      try {
+        await saveProj({ data: { id: projectId, files: filesRef.current.map((f) => ({ path: f.path, content: f.content })) } });
+        lastSaved.current = sig;
+        setAutoState(fileSig(filesRef.current) === sig ? "saved" : "dirty");
+      } catch {
+        setAutoState("error");
+        retryTimer = setTimeout(() => setAutoRetry((n) => n + 1), 8000);
+      }
+    };
+    timer = setTimeout(() => void save(), 1500);
+    const onHide = () => {
+      if (document.visibilityState === "hidden") void save();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(retryTimer);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [filesSig, projectId, user, autoRetry, saveProj]);
+
+  // Peringatan kalau halaman ditutup saat perubahan belum tersimpan.
+  useEffect(() => {
+    if (!projectId || autoState === "saved") return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [projectId, autoState]);
 
   const onSaveProject = () => {
     if (!user) return toast.error("Masuk dulu untuk menyimpan proyek.");
@@ -437,6 +511,14 @@ function PlaygroundPage() {
               {visibility === "open" ? <Globe className="mr-1 h-4 w-4" /> : <Lock className="mr-1 h-4 w-4" />}
               {visibility === "open" ? "Open source" : "Close source"}
             </Button>
+          )}
+          {projectId && (
+            <span
+              role="status"
+              className={`hidden self-center text-xs sm:inline ${autoState === "error" ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              {AUTO_LABEL[autoState]}
+            </span>
           )}
           <Button variant="outline" onClick={onSaveProject} disabled={saveMutation.isPending || (!!project && loadingProject)}>
             <Save className="mr-1 h-4 w-4" /> {saveMutation.isPending ? "Menyimpan..." : projectId ? "Simpan" : "Simpan Proyek"}
