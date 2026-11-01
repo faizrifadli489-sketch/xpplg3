@@ -1,0 +1,583 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  createCashDue,
+  createCashExpense,
+  deleteCashDue,
+  deleteCashExpense,
+  getKasSettings,
+  getMyCash,
+  listCashDuesAdmin,
+  listDuePayments,
+  saveCashPayments,
+  updateCashDue,
+  updateCashExpense,
+  updateKasSettings,
+} from "@/lib/kas.functions";
+import { listStudents } from "@/lib/students.functions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Pencil, Trash2, Plus, Users } from "lucide-react";
+import { toast } from "sonner";
+import { formatDateId, formatRupiah } from "@/lib/format";
+import { wibDateString } from "@/lib/time";
+
+export const Route = createFileRoute("/_authenticated/admin/kas")({
+  component: AdminKas,
+});
+
+type DueRow = {
+  id: string;
+  title: string;
+  amount: number;
+  due_date: string | null;
+  is_daily: boolean;
+  paid_count: number;
+};
+type ExpenseRow = { id: string; spent_on: string; description: string; amount: number };
+
+type DueForm = { title: string; amount: string; due_date: string };
+type ExpenseForm = { spent_on: string; description: string; amount: string };
+
+const emptyDue: DueForm = { title: "", amount: "", due_date: "" };
+const emptyExpense = (): ExpenseForm => ({ spent_on: wibDateString(), description: "", amount: "" });
+
+function AdminKas() {
+  const queryClient = useQueryClient();
+  const fetchOverview = useServerFn(getMyCash);
+  const fetchDues = useServerFn(listCashDuesAdmin);
+  const fetchStudents = useServerFn(listStudents);
+  const createDue = useServerFn(createCashDue);
+  const updateDue = useServerFn(updateCashDue);
+  const removeDue = useServerFn(deleteCashDue);
+  const createExpense = useServerFn(createCashExpense);
+  const updateExpense = useServerFn(updateCashExpense);
+  const removeExpense = useServerFn(deleteCashExpense);
+
+  const fetchSettings = useServerFn(getKasSettings);
+  const saveSettingsFn = useServerFn(updateKasSettings);
+
+  const overview = useQuery({ queryKey: ["my-cash"], queryFn: () => fetchOverview() });
+  const dues = useQuery({ queryKey: ["cash-dues-admin"], queryFn: () => fetchDues() });
+  const students = useQuery({ queryKey: ["students"], queryFn: () => fetchStudents() });
+  const settings = useQuery({ queryKey: ["kas-settings"], queryFn: () => fetchSettings() });
+
+  const [dailyAmount, setDailyAmount] = useState("");
+  useEffect(() => {
+    if (settings.data) setDailyAmount(String(settings.data.daily_amount));
+  }, [settings.data]);
+
+  const saveSettings = useMutation({
+    mutationFn: () => saveSettingsFn({ data: { daily_amount: Number(dailyAmount) } }),
+    onSuccess: () => {
+      toast.success("Harga kas harian diperbarui.");
+      queryClient.invalidateQueries({ queryKey: ["kas-settings"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan pengaturan."),
+  });
+
+  const [dueOpen, setDueOpen] = useState(false);
+  const [editingDue, setEditingDue] = useState<DueRow | null>(null);
+  const [dueForm, setDueForm] = useState<DueForm>(emptyDue);
+  const [paymentsDue, setPaymentsDue] = useState<DueRow | null>(null);
+
+  const [expenseOpen, setExpenseOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseRow | null>(null);
+  const [expenseForm, setExpenseForm] = useState<ExpenseForm>(emptyExpense());
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["my-cash"] });
+    queryClient.invalidateQueries({ queryKey: ["cash-dues-admin"] });
+  };
+
+  const saveDue = useMutation({
+    mutationFn: () => {
+      const payload = { title: dueForm.title, amount: Number(dueForm.amount), due_date: dueForm.due_date || null };
+      if (editingDue) return updateDue({ data: { id: editingDue.id, ...payload } });
+      return createDue({ data: payload });
+    },
+    onSuccess: () => {
+      toast.success(editingDue ? "Tagihan diperbarui." : "Tagihan dibuat.");
+      setDueOpen(false);
+      setEditingDue(null);
+      refresh();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan tagihan."),
+  });
+
+  const deleteDueMutation = useMutation({
+    mutationFn: (id: string) => removeDue({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Tagihan dihapus.");
+      refresh();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menghapus tagihan."),
+  });
+
+  const saveExpense = useMutation({
+    mutationFn: () => {
+      const payload = {
+        spent_on: expenseForm.spent_on,
+        description: expenseForm.description,
+        amount: Number(expenseForm.amount),
+      };
+      if (editingExpense) return updateExpense({ data: { id: editingExpense.id, ...payload } });
+      return createExpense({ data: payload });
+    },
+    onSuccess: () => {
+      toast.success(editingExpense ? "Pengeluaran diperbarui." : "Pengeluaran dicatat.");
+      setExpenseOpen(false);
+      setEditingExpense(null);
+      refresh();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan pengeluaran."),
+  });
+
+  const deleteExpenseMutation = useMutation({
+    mutationFn: (id: string) => removeExpense({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Pengeluaran dihapus.");
+      refresh();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menghapus pengeluaran."),
+  });
+
+  const totalStudents = students.data?.length ?? 0;
+  const duesData = (dues.data ?? []) as DueRow[];
+  const expenses = (overview.data?.expenses ?? []) as ExpenseRow[];
+
+  return (
+    <div className="space-y-10">
+      <div>
+        <h2 className="text-lg font-semibold">Kas Kelas</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Siswa hanya melihat status iuran miliknya sendiri, plus saldo dan pengeluaran. Daftar siapa yang belum bayar
+          hanya ada di sini.
+        </p>
+        {overview.data && (
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-primary bg-primary px-4 py-3 text-primary-foreground">
+              <p className="text-xs text-primary-foreground/70">Saldo</p>
+              <p className="font-display text-lg font-semibold">{formatRupiah(overview.data.balance)}</p>
+            </div>
+            <div className="rounded-lg border border-border px-4 py-3">
+              <p className="text-xs text-muted-foreground">Total masuk</p>
+              <p className="font-display text-lg font-semibold">{formatRupiah(overview.data.total_in)}</p>
+            </div>
+            <div className="rounded-lg border border-border px-4 py-3">
+              <p className="text-xs text-muted-foreground">Total keluar</p>
+              <p className="font-display text-lg font-semibold">{formatRupiah(overview.data.total_out)}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <section>
+        <h3 className="mb-4 font-semibold">Pengaturan kas harian</h3>
+        <Card>
+          <CardContent className="flex flex-wrap items-end gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="daily-amount">Harga kas per hari (Rp)</Label>
+              <Input
+                id="daily-amount"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={dailyAmount}
+                onChange={(e) => setDailyAmount(e.target.value)}
+                className="w-40"
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={saveSettings.isPending || !dailyAmount}
+              onClick={() => saveSettings.mutate()}
+            >
+              {saveSettings.isPending ? "Menyimpan..." : "Simpan harga"}
+            </Button>
+            <p className="w-full text-sm text-muted-foreground">
+              Tagihan "Kas Harian" otomatis dibuat setiap hari dengan tanggal hari itu, memakai harga di atas. Tidak
+              perlu tambah tagihan manual tiap hari lagi.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-semibold">Tagihan iuran</h3>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingDue(null);
+              setDueForm(emptyDue);
+              setDueOpen(true);
+            }}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Tambah tagihan
+          </Button>
+        </div>
+
+        {dues.isLoading ? (
+          <Skeleton className="h-20 rounded-lg" />
+        ) : duesData.length > 0 ? (
+          <div className="space-y-3">
+            {duesData.map((due) => (
+              <Card key={due.id}>
+                <CardContent className="flex items-center justify-between gap-4 py-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {due.title}
+                      {due.is_daily && (
+                        <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-foreground">
+                          Otomatis
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatRupiah(due.amount)} per siswa
+                      {due.due_date
+                        ? due.is_daily
+                          ? `, tanggal ${formatDateId(due.due_date)}`
+                          : `, batas ${formatDateId(due.due_date)}`
+                        : ""}
+                    </p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {due.paid_count}/{totalStudents} siswa lunas
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <Button variant="outline" size="sm" onClick={() => setPaymentsDue(due)}>
+                      <Users className="mr-1 h-4 w-4" /> Pembayaran
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingDue(due);
+                        setDueForm({
+                          title: due.title,
+                          amount: String(due.amount),
+                          due_date: due.due_date ?? "",
+                        });
+                        setDueOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm("Hapus tagihan ini beserta catatan pembayarannya?")) deleteDueMutation.mutate(due.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Belum ada tagihan.</p>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-semibold">Pengeluaran</h3>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingExpense(null);
+              setExpenseForm(emptyExpense());
+              setExpenseOpen(true);
+            }}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Catat pengeluaran
+          </Button>
+        </div>
+
+        {overview.isLoading ? (
+          <Skeleton className="h-20 rounded-lg" />
+        ) : expenses.length > 0 ? (
+          <div className="space-y-3">
+            {expenses.map((expense) => (
+              <Card key={expense.id}>
+                <CardContent className="flex items-center justify-between gap-4 py-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{expense.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDateId(expense.spent_on)}, {formatRupiah(expense.amount)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingExpense(expense);
+                        setExpenseForm({
+                          spent_on: expense.spent_on,
+                          description: expense.description,
+                          amount: String(expense.amount),
+                        });
+                        setExpenseOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm("Hapus catatan pengeluaran ini?")) deleteExpenseMutation.mutate(expense.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Belum ada pengeluaran.</p>
+        )}
+      </section>
+
+      <Dialog open={dueOpen} onOpenChange={setDueOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingDue ? "Edit Tagihan" : "Tambah Tagihan"}</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveDue.mutate();
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="due-title">Nama tagihan</Label>
+              <Input
+                id="due-title"
+                placeholder="Kas September 2026"
+                value={dueForm.title}
+                onChange={(e) => setDueForm({ ...dueForm, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="due-amount">Nominal per siswa (Rp)</Label>
+                <Input
+                  id="due-amount"
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={dueForm.amount}
+                  onChange={(e) => setDueForm({ ...dueForm, amount: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="due-date">Batas bayar (opsional)</Label>
+                <Input
+                  id="due-date"
+                  type="date"
+                  value={dueForm.due_date}
+                  onChange={(e) => setDueForm({ ...dueForm, due_date: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={saveDue.isPending}>
+                {saveDue.isPending ? "Menyimpan..." : "Simpan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingExpense ? "Edit Pengeluaran" : "Catat Pengeluaran"}</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveExpense.mutate();
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="exp-desc">Keperluan</Label>
+              <Input
+                id="exp-desc"
+                placeholder="Beli spidol dan penghapus"
+                value={expenseForm.description}
+                onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                required
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="exp-amount">Nominal (Rp)</Label>
+                <Input
+                  id="exp-amount"
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="exp-date">Tanggal</Label>
+                <Input
+                  id="exp-date"
+                  type="date"
+                  value={expenseForm.spent_on}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, spent_on: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={saveExpense.isPending}>
+                {saveExpense.isPending ? "Menyimpan..." : "Simpan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <PaymentsDialog
+        due={paymentsDue}
+        students={(students.data ?? []).map((s) => ({ id: s.id, full_name: s.full_name }))}
+        onClose={() => {
+          setPaymentsDue(null);
+          refresh();
+        }}
+      />
+    </div>
+  );
+}
+
+function PaymentsDialog({
+  due,
+  students,
+  onClose,
+}: {
+  due: DueRow | null;
+  students: { id: string; full_name: string }[];
+  onClose: () => void;
+}) {
+  const fetchPayments = useServerFn(listDuePayments);
+  const saveFn = useServerFn(saveCashPayments);
+
+  const payments = useQuery({
+    queryKey: ["cash-payments", due?.id],
+    queryFn: () => fetchPayments({ data: { due_id: due!.id } }),
+    enabled: !!due,
+    refetchOnWindowFocus: false,
+  });
+
+  // Perubahan ditahan di sini (belum ke server) sampai tombol "Selesai" ditekan.
+  const [localPaid, setLocalPaid] = useState<Set<string>>(new Set());
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(false);
+  }, [due?.id]);
+
+  useEffect(() => {
+    if (payments.data && !ready) {
+      setLocalPaid(new Set(payments.data));
+      setReady(true);
+    }
+  }, [payments.data, ready]);
+
+  const serverPaid = new Set(payments.data ?? []);
+  const toAdd = [...localPaid].filter((id) => !serverPaid.has(id));
+  const toRemove = [...serverPaid].filter((id) => !localPaid.has(id));
+  const changeCount = toAdd.length + toRemove.length;
+
+  const save = useMutation({
+    mutationFn: () => saveFn({ data: { due_id: due!.id, add: toAdd, remove: toRemove } }),
+    onSuccess: () => {
+      toast.success(changeCount > 0 ? "Pembayaran disimpan." : "Tidak ada perubahan.");
+      onClose();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal menyimpan pembayaran."),
+  });
+
+  const handleDone = () => {
+    if (save.isPending) return;
+    if (changeCount === 0) {
+      onClose();
+      return;
+    }
+    save.mutate();
+  };
+
+  const toggleStudent = (id: string, checked: boolean) => {
+    setLocalPaid((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  return (
+    <Dialog open={!!due} onOpenChange={(open) => !open && handleDone()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Pembayaran: {due?.title}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Nyalakan tombol di samping nama siswa yang sudah membayar {due ? formatRupiah(due.amount) : ""}. Perubahan
+          disimpan saat menekan Selesai.
+        </p>
+        {payments.isLoading || !ready ? (
+          <Skeleton className="h-40 rounded-lg" />
+        ) : (
+          <div className="max-h-80 divide-y divide-border overflow-auto rounded-md border border-border">
+            {students.map((student) => (
+              <div key={student.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="truncate text-sm">{student.full_name}</span>
+                <Switch
+                  checked={localPaid.has(student.id)}
+                  disabled={save.isPending}
+                  onCheckedChange={(checked) => toggleStudent(student.id, checked)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <DialogFooter className="items-center gap-2 sm:justify-between">
+          <span className="text-xs text-muted-foreground">
+            {changeCount > 0 ? `${changeCount} perubahan belum disimpan` : ""}
+          </span>
+          <Button type="button" disabled={save.isPending || !ready} onClick={handleDone}>
+            {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {save.isPending ? "Menyimpan..." : "Selesai"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
